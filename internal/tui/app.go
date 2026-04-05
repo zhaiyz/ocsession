@@ -66,38 +66,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searchQuery = ""
 			}
 		
-case "enter":
+		case "enter":
 			if m.searchMode {
 				m.searchMode = false
 			} else if len(m.sessions) > 0 {
 				selectedSession := m.sessions[m.selectedIndex]
 				
-				// macOS: 在新Terminal窗口中启动OpenCode
-				script := fmt.Sprintf(`tell application "Terminal" to do script "cd %s && opencode -s %s"`,
-					selectedSession.Directory,
-					selectedSession.ID)
+				// 直接启动 OpenCode
+				cmd := exec.Command("opencode", "-s", selectedSession.ID)
+				cmd.Dir = selectedSession.Directory
 				
-				cmd := exec.Command("osascript", "-e", script)
+				// 设置标准输入输出
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				cmd.Stdin = os.Stdin
 				
-				if err := cmd.Run(); err != nil {
-					// 如果失败，尝试直接启动
-					fmt.Printf("\n无法在新窗口启动，尝试直接启动...\n")
-					directCmd := exec.Command("opencode", "-s", selectedSession.ID)
-					directCmd.Stdout = os.Stdout
-					directCmd.Stderr = os.Stderr
-					directCmd.Stdin = os.Stdin
-					
-					if err := directCmd.Start(); err != nil {
-						fmt.Printf("错误: 无法启动会话: %v\n", err)
-						fmt.Println("请确保 opencode 已正确安装并在 PATH 中")
-						time.Sleep(3 * time.Second)
-						return m, nil
-					}
-				}
-				
-				// 成功启动，退出TUI
+				// 退出TUI，让OpenCode接管终端
 				m.quitting = true
-				return m, tea.Quit
+				return m, tea.Sequence(
+					tea.Quit,
+					func() tea.Msg {
+						if err := cmd.Run(); err != nil {
+							fmt.Fprintf(os.Stderr, "\n错误: 无法启动会话: %v\n", err)
+						}
+						return nil
+					},
+				)
 			}
 		
 		case "r":
@@ -117,27 +111,25 @@ func (m Model) View() string {
 	header := styles.TitleStyle.Render(" OpenCode Session Manager ") + 
 		styles.HelpStyle.Render("  [q:退出] [j/k:导航] [/:搜索] [r:刷新] [Enter:继续]")
 
-	list := ""
+	// 会话列表 - 固定宽度
+	listLines := make([]string, 0, len(m.sessions))
 	for i, sess := range m.sessions {
 		cursor := "  "
 		if i == m.selectedIndex {
 			cursor = "→ "
 		}
 		
-		// 格式化时间（固定宽度）
 		timeStr := formatTime(sess.Updated)
+		title := truncate(sess.Title, 48)
 		
-		// 截断标题到固定显示宽度
-		title := truncate(sess.Title, 50)
-		
-		// 计算需要的填充空格（考虑中文字符宽度）
+		// 计算填充
 		titleWidth := runewidth.StringWidth(title)
-		padding := 52 - titleWidth
-		if padding < 0 {
-			padding = 0
+		padding := 50 - titleWidth
+		if padding < 1 {
+			padding = 1
 		}
 		
-		// 构建行（固定时间列位置）
+		// 构建行
 		line := cursor + title + strings.Repeat(" ", padding) + timeStr
 		
 		if i == m.selectedIndex {
@@ -146,23 +138,27 @@ func (m Model) View() string {
 			line = styles.ListItemStyle.Render(line)
 		}
 		
-		list += line + "\n"
+		listLines = append(listLines, line)
 	}
+	
+	list := strings.Join(listLines, "\n")
 
+	// 预览面板
 	preview := ""
 	if len(m.sessions) > 0 && m.selectedIndex < len(m.sessions) {
 		sess := m.sessions[m.selectedIndex]
 		preview = renderPreview(sess)
 	}
 
+	// 固定布局 - 避免选中行影响
 	leftPanel := lipgloss.NewStyle().
-		Width(75).
-		Height(20).
+		Width(72).
+		Height(18).
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(50).
-		Height(20).
+		Width(52).
+		Height(18).
 		Render(preview)
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
@@ -192,10 +188,7 @@ func renderPreview(sess store.Session) string {
 	result += fmt.Sprintf("创建: %s\n", formatTime(sess.Created))
 	
 	if len(sess.Tags) > 0 {
-		tagsStr := ""
-		for _, tag := range sess.Tags {
-			tagsStr += tag + " "
-		}
+		tagsStr := strings.Join(sess.Tags, " ")
 		result += fmt.Sprintf("\n标签: %s\n", tagsStr)
 	}
 	
@@ -212,18 +205,19 @@ func renderPreview(sess store.Session) string {
 
 func formatTime(timestamp int64) string {
 	if timestamp == 0 {
-		return "未知时间"
+		return "Unknown"
 	}
-	// 数据库存储的是毫秒时间戳，转换为秒
+	
+	// 毫秒时间戳转换为秒
 	t := time.Unix(timestamp/1000, 0)
 	now := time.Now()
 	diff := now.Sub(t)
 	
 	if diff.Hours() < 24 {
-		// 今天 - 显示时间
-		return t.Format("今天 15:04")
+		// 今天 - 只显示时间
+		return t.Format("15:04")
 	} else if diff.Hours() < 24*7 {
-		// 本周 - 显示星期
+		// 本周 - 显示星期和时间
 		return t.Format("Mon 15:04")
 	} else {
 		// 更早 - 显示日期
