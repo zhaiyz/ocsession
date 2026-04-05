@@ -39,6 +39,7 @@ func (s *SQLiteStore) LoadSessions() ([]Session, error) {
     query := `
         SELECT id, title, time_updated, time_created, project_id, directory
         FROM session
+        WHERE parent_id IS NULL
         ORDER BY time_updated DESC
         LIMIT 50
     `
@@ -129,7 +130,8 @@ func (s *SQLiteStore) SearchSessions(query string) ([]Session, error) {
     searchQuery := `
         SELECT id, title, time_updated, time_created, project_id, directory
         FROM session
-        WHERE title LIKE ? OR directory LIKE ?
+        WHERE parent_id IS NULL
+          AND (title LIKE ? OR directory LIKE ?)
         ORDER BY time_updated DESC
         LIMIT 50
     `
