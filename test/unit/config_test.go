@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/opencode-session-manager/ocsession/internal/config"
+	"github.com/zhaiyz/ocsession/internal/config"
 )
 
 func TestDefaultConfig(t *testing.T) {

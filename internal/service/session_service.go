@@ -1,8 +1,8 @@
 package service
 
 import (
-    "github.com/opencode-session-manager/ocsession/internal/config"
-    "github.com/opencode-session-manager/ocsession/internal/store"
+    "github.com/zhaiyz/ocsession/internal/config"
+    "github.com/zhaiyz/ocsession/internal/store"
 )
 
 // SessionService handles session business logic

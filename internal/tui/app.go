@@ -11,9 +11,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
 
-	"github.com/opencode-session-manager/ocsession/internal/service"
-	"github.com/opencode-session-manager/ocsession/internal/store"
-	"github.com/opencode-session-manager/ocsession/internal/tui/styles"
+	"github.com/zhaiyz/ocsession/internal/service"
+	"github.com/zhaiyz/ocsession/internal/store"
+	"github.com/zhaiyz/ocsession/internal/tui/styles"
 )
 
 type Model struct {

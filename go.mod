@@ -1,4 +1,4 @@
-module github.com/opencode-session-manager/ocsession
+module github.com/zhaiyz/ocsession
 
 go 1.21
 

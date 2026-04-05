@@ -6,10 +6,10 @@ import (
 	
 	tea "github.com/charmbracelet/bubbletea"
 	
-	"github.com/opencode-session-manager/ocsession/internal/config"
-	"github.com/opencode-session-manager/ocsession/internal/service"
-	"github.com/opencode-session-manager/ocsession/internal/store"
-	"github.com/opencode-session-manager/ocsession/internal/tui"
+	"github.com/zhaiyz/ocsession/internal/config"
+	"github.com/zhaiyz/ocsession/internal/service"
+	"github.com/zhaiyz/ocsession/internal/store"
+	"github.com/zhaiyz/ocsession/internal/tui"
 )
 
 func main() {
