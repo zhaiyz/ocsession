@@ -11,8 +11,8 @@
 
 **显示示例**：
 ```
-路径: /Users/zhaiyazhou/code/ocsession
-路径: /Users/zhaiyazhou/code/voice-in...
+路径: /path/to/ocsession
+路径: /path/to/voice-input...
 ```
 
 **验证方法**：
@@ -99,7 +99,7 @@
 ### 测试环境准备
 
 ```bash
-cd /Users/zhaiyazhou/code/ocsession
+cd /path/to/ocsession
 ./bin/ocsession
 ```
 
@@ -169,7 +169,7 @@ cd /Users/zhaiyazhou/code/ocsession
 
 标题: OpenCode session管理程序开发
 ID: ses_2a1ebb6caffeT2kcu2...
-路径: /Users/zhaiyazhou/code/ocsession
+路径: /path/to/ocsession
 更新: 今天 00:43
 创建: 2026-04-05
 时长: 2小时30分
@@ -269,7 +269,7 @@ MessageStyle = lipgloss.NewStyle().
 ## 🚀 启动测试
 
 ```bash
-cd /Users/zhaiyazhou/code/ocsession
+cd /path/to/ocsession
 ./bin/ocsession
 ```
 

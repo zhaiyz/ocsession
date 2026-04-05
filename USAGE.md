@@ -3,7 +3,7 @@
 ## 🚀 启动应用
 
 ```bash
-cd /Users/zhaiyazhou/code/ocsession
+cd /path/to/ocsession
 ./bin/ocsession
 ```
 

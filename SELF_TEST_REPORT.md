@@ -116,7 +116,7 @@ case "enter":
 ### 1. 编译测试
 
 ```bash
-cd /Users/zhaiyazhou/code/ocsession
+cd /path/to/ocsession
 make build
 ```
 
@@ -208,14 +208,14 @@ make build
 
 ### 文件位置
 
-- 应用程序：`/Users/zhaiyazhou/code/ocsession/bin/ocsession`
-- 源代码：`/Users/zhaiyazhou/code/ocsession/`
+- 应用程序：`/path/to/ocsession/bin/ocsession`
+- 源代码：`/path/to/ocsession/`
 - Git 提交：`30f7041`
 
 ### 启动方式
 
 ```bash
-cd /Users/zhaiyazhou/code/ocsession
+cd /path/to/ocsession
 ./bin/ocsession
 ```
 

@@ -85,7 +85,7 @@
 ### 测试1: 界面显示
 
 ```bash
-cd /Users/zhaiyazhou/code/ocsession
+cd /path/to/ocsession
 ./bin/ocsession
 ```
 
