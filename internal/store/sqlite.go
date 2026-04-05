@@ -3,6 +3,7 @@ package store
 import (
     "database/sql"
     "fmt"
+    "os"
     "path/filepath"
     
     _ "github.com/mattn/go-sqlite3"
@@ -29,16 +30,16 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 
 // DefaultDBPath returns the default OpenCode database path
 func DefaultDBPath() string {
-    homeDir, _ := filepath.HomeDir()
+    homeDir, _ := os.UserHomeDir()
     return filepath.Join(homeDir, ".local", "share", "opencode", "opencode.db")
 }
 
 // LoadSessions loads all sessions from database
 func (s *SQLiteStore) LoadSessions() ([]Session, error) {
     query := `
-        SELECT id, title, updated, created, project_id, directory
-        FROM sessions
-        ORDER BY updated DESC
+        SELECT id, title, time_updated, time_created, project_id, directory
+        FROM session
+        ORDER BY time_updated DESC
         LIMIT 50
     `
     
@@ -72,8 +73,8 @@ func (s *SQLiteStore) LoadSessions() ([]Session, error) {
 func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
     // Query session basic info
     sessQuery := `
-        SELECT id, title, updated, created, project_id, directory
-        FROM sessions
+        SELECT id, title, time_updated, time_created, project_id, directory
+        FROM session
         WHERE id = ?
     `
     
@@ -90,12 +91,12 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
         return nil, fmt.Errorf("failed to query session: %w", err)
     }
     
-    // Query last messages
+    // Query last messages (simplified - just get message data)
     msgQuery := `
-        SELECT content, timestamp, role
-        FROM messages
+        SELECT data
+        FROM message
         WHERE session_id = ?
-        ORDER BY timestamp DESC
+        ORDER BY time_created DESC
         LIMIT 10
     `
     
@@ -107,12 +108,13 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
     
     var messages []Message
     for rows.Next() {
-        var msg Message
-        err := rows.Scan(&msg.Content, &msg.Timestamp, &msg.Role)
+        var data string
+        err := rows.Scan(&data)
         if err != nil {
             return nil, fmt.Errorf("failed to scan message: %w", err)
         }
-        messages = append(messages, msg)
+        // Create a message with the data content
+        messages = append(messages, Message{Content: data})
     }
     
     return &SessionDetail{
@@ -125,10 +127,10 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
 // SearchSessions searches sessions by query
 func (s *SQLiteStore) SearchSessions(query string) ([]Session, error) {
     searchQuery := `
-        SELECT id, title, updated, created, project_id, directory
-        FROM sessions
+        SELECT id, title, time_updated, time_created, project_id, directory
+        FROM session
         WHERE title LIKE ? OR directory LIKE ?
-        ORDER BY updated DESC
+        ORDER BY time_updated DESC
         LIMIT 50
     `
     

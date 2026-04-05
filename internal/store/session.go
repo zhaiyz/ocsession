@@ -1,14 +1,12 @@
 package store
 
-import "time"
-
 type Session struct {
-    ID        string    `json:"id"`
-    Title     string    `json:"title"`
-    Created   time.Time `json:"created"`
-    Updated   time.Time `json:"updated"`
-    ProjectID string    `json:"project_id"`
-    Directory string    `json:"directory"`
+    ID        string `json:"id"`
+    Title     string `json:"title"`
+    Created   int64  `json:"created"`   // Unix timestamp
+    Updated   int64  `json:"updated"`   // Unix timestamp
+    ProjectID string `json:"project_id"`
+    Directory string `json:"directory"`
     
     // Extended fields from config
     Tags      []string
@@ -32,7 +30,7 @@ type SessionStats struct {
 type FilterCriteria struct {
     Tags       []string
     Project    string
-    DateFrom   time.Time
-    DateTo     time.Time
+    DateFrom   int64  // Unix timestamp
+    DateTo     int64  // Unix timestamp
     Query      string
 }

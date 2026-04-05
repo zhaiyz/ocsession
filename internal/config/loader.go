@@ -36,7 +36,8 @@ func LoadOrCreateConfig(path string) (*Config, error) {
         return cfg, nil
     }
     
-    if os.IsNotExist(err) {
+    // Check if error is because file doesn't exist
+    if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
         cfg = DefaultConfig()
         if err := SaveConfig(path, cfg); err != nil {
             return nil, fmt.Errorf("failed to create default config: %w", err)
