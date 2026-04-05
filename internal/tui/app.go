@@ -205,7 +205,7 @@ func renderPreview(sess store.Session) string {
 
 func formatTime(timestamp int64) string {
 	if timestamp == 0 {
-		return "Unknown"
+		return "未知时间"
 	}
 	
 	// 毫秒时间戳转换为秒
@@ -213,12 +213,25 @@ func formatTime(timestamp int64) string {
 	now := time.Now()
 	diff := now.Sub(t)
 	
+	// 中文星期映射
+	weekdays := map[string]string{
+		"Monday":    "周一",
+		"Tuesday":   "周二",
+		"Wednesday": "周三",
+		"Thursday":  "周四",
+		"Friday":    "周五",
+		"Saturday":  "周六",
+		"Sunday":    "周日",
+	}
+	
 	if diff.Hours() < 24 {
-		// 今天 - 只显示时间
-		return t.Format("15:04")
+		// 今天 - 显示"今天 + 时间"
+		return "今天 " + t.Format("15:04")
 	} else if diff.Hours() < 24*7 {
-		// 本周 - 显示星期和时间
-		return t.Format("Mon 15:04")
+		// 本周 - 显示中文星期 + 时间
+		weekday := t.Format("Monday")
+		cnWeekday := weekdays[weekday]
+		return cnWeekday + " " + t.Format("15:04")
 	} else {
 		// 更早 - 显示日期
 		return t.Format("2006-01-02")
