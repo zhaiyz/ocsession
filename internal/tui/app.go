@@ -230,12 +230,12 @@ func (m Model) View() string {
 
 	// 固定布局 - 确保边框完整
 	leftPanel := lipgloss.NewStyle().
-		Width(85).  // 增加宽度以容纳文件夹名
+		Width(85).
 		Height(22).
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(60).
+		Width(58).
 		Height(22).
 		Render(preview)
 
@@ -326,7 +326,8 @@ func renderPreview(detail store.SessionDetail) string {
 		if totalCount <= 10 {
 			// 少于等于10条，全部显示
 			for i, msg := range msgs {
-				cleanMsg := strings.ReplaceAll(msg.Content, "\n", " ")
+				cleanMsg := strings.TrimSpace(msg.Content)
+				cleanMsg = strings.ReplaceAll(cleanMsg, "\n", " ")
 				cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
 				truncated := truncate(cleanMsg, 50)
 				result.WriteString(fmt.Sprintf("%d. %s\n", i+1, truncated))
@@ -335,7 +336,8 @@ func renderPreview(detail store.SessionDetail) string {
 			// 超过10条，显示前5条和后5条
 			// 前5条
 			for i := 0; i < 5; i++ {
-				cleanMsg := strings.ReplaceAll(msgs[i].Content, "\n", " ")
+				cleanMsg := strings.TrimSpace(msgs[i].Content)
+				cleanMsg = strings.ReplaceAll(cleanMsg, "\n", " ")
 				cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
 				truncated := truncate(cleanMsg, 50)
 				result.WriteString(fmt.Sprintf("%d. %s\n", i+1, truncated))
@@ -343,12 +345,13 @@ func renderPreview(detail store.SessionDetail) string {
 			
 			// 省略提示
 			skipped := totalCount - 10
-			result.WriteString(styles.HelpStyle.Render(fmt.Sprintf("  ... 省略 %d 条消息 ...\n", skipped)))
+			result.WriteString(fmt.Sprintf("... 省略 %d 条消息 ...\n", skipped))
 			
 			// 后5条
 			for i := 0; i < 5; i++ {
 				idx := totalCount - 5 + i
-				cleanMsg := strings.ReplaceAll(msgs[idx].Content, "\n", " ")
+				cleanMsg := strings.TrimSpace(msgs[idx].Content)
+				cleanMsg = strings.ReplaceAll(cleanMsg, "\n", " ")
 				cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
 				truncated := truncate(cleanMsg, 50)
 				result.WriteString(fmt.Sprintf("%d. %s\n", idx+1, truncated))
