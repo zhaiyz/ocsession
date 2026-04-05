@@ -139,10 +139,8 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
 		}
 	}
 	
-	// Keep only last 10 messages
-	if len(messages) > 10 {
-		messages = messages[len(messages)-10:]
-	}
+	// Keep all messages (don't truncate)
+	// Truncation will be done in the UI layer
 	
 	// Calculate session duration
 	duration := int64(0)

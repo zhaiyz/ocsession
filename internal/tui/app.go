@@ -320,19 +320,39 @@ func renderPreview(detail store.SessionDetail) string {
 	if len(detail.LastMessages) > 0 {
 		result.WriteString("\n" + styles.HelpStyle.Render("─ 对话记录 ─") + "\n")
 		
-		// 显示最近10条用户输入
-		maxShow := 10
-		if len(detail.LastMessages) < maxShow {
-			maxShow = len(detail.LastMessages)
-		}
+		msgs := detail.LastMessages
+		totalCount := len(msgs)
 		
-		for i := 0; i < maxShow; i++ {
-			msg := detail.LastMessages[i].Content
-			// 每条消息限制50字符，替换换行
-			cleanMsg := strings.ReplaceAll(msg, "\n", " ")
-			cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
-			truncated := truncate(cleanMsg, 50)
-			result.WriteString(fmt.Sprintf("%d. %s\n", i+1, truncated))
+		if totalCount <= 10 {
+			// 少于等于10条，全部显示
+			for i, msg := range msgs {
+				cleanMsg := strings.ReplaceAll(msg.Content, "\n", " ")
+				cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
+				truncated := truncate(cleanMsg, 50)
+				result.WriteString(fmt.Sprintf("%d. %s\n", i+1, truncated))
+			}
+		} else {
+			// 超过10条，显示前5条和后5条
+			// 前5条
+			for i := 0; i < 5; i++ {
+				cleanMsg := strings.ReplaceAll(msgs[i].Content, "\n", " ")
+				cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
+				truncated := truncate(cleanMsg, 50)
+				result.WriteString(fmt.Sprintf("%d. %s\n", i+1, truncated))
+			}
+			
+			// 省略提示
+			skipped := totalCount - 10
+			result.WriteString(styles.HelpStyle.Render(fmt.Sprintf("  ... 省略 %d 条消息 ...\n", skipped)))
+			
+			// 后5条
+			for i := 0; i < 5; i++ {
+				idx := totalCount - 5 + i
+				cleanMsg := strings.ReplaceAll(msgs[idx].Content, "\n", " ")
+				cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
+				truncated := truncate(cleanMsg, 50)
+				result.WriteString(fmt.Sprintf("%d. %s\n", idx+1, truncated))
+			}
 		}
 	}
 	
