@@ -66,35 +66,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searchQuery = ""
 			}
 		
-		case "enter":
+case "enter":
 			if m.searchMode {
 				m.searchMode = false
 			} else if len(m.sessions) > 0 {
 				selectedSession := m.sessions[m.selectedIndex]
 				
-				// 打印提示信息
-				fmt.Printf("\n正在切换到会话: %s\n", selectedSession.Title)
-				fmt.Printf("会话ID: %s\n", selectedSession.ID)
-				fmt.Println("正在启动 OpenCode...")
+				// macOS: 在新Terminal窗口中启动OpenCode
+				script := fmt.Sprintf(`tell application "Terminal" to do script "cd %s && opencode -s %s"`,
+					selectedSession.Directory,
+					selectedSession.ID)
 				
-				// 创建命令
-				cmd := exec.Command("opencode", "-s", selectedSession.ID)
+				cmd := exec.Command("osascript", "-e", script)
 				
-				// 设置标准输入输出
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Stdin = os.Stdin
-				
-				// 启动命令
-				if err := cmd.Start(); err != nil {
-					fmt.Printf("\n错误: 无法启动会话: %v\n", err)
-					fmt.Println("请确保 opencode 已正确安装并在 PATH 中")
-					fmt.Println("\n按任意键继续...")
-					time.Sleep(3 * time.Second)
-					return m, nil
+				if err := cmd.Run(); err != nil {
+					// 如果失败，尝试直接启动
+					fmt.Printf("\n无法在新窗口启动，尝试直接启动...\n")
+					directCmd := exec.Command("opencode", "-s", selectedSession.ID)
+					directCmd.Stdout = os.Stdout
+					directCmd.Stderr = os.Stderr
+					directCmd.Stdin = os.Stdin
+					
+					if err := directCmd.Start(); err != nil {
+						fmt.Printf("错误: 无法启动会话: %v\n", err)
+						fmt.Println("请确保 opencode 已正确安装并在 PATH 中")
+						time.Sleep(3 * time.Second)
+						return m, nil
+					}
 				}
 				
-				// 退出TUI，让opencode接管
+				// 成功启动，退出TUI
+				m.quitting = true
 				return m, tea.Quit
 			}
 		
@@ -212,7 +214,8 @@ func formatTime(timestamp int64) string {
 	if timestamp == 0 {
 		return "未知时间"
 	}
-	t := time.Unix(timestamp, 0)
+	// 数据库存储的是毫秒时间戳，转换为秒
+	t := time.Unix(timestamp/1000, 0)
 	now := time.Now()
 	diff := now.Sub(t)
 	

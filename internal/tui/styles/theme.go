@@ -16,9 +16,10 @@ var (
         Foreground(lipgloss.Color("15")).
         Background(lipgloss.Color("62"))
     
-    PreviewStyle = lipgloss.NewStyle().
-        Border(lipgloss.NormalBorder()).
-        BorderForeground(lipgloss.Color("63"))
+PreviewStyle = lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("63")).
+		Padding(1, 2)
     
     SearchPromptStyle = lipgloss.NewStyle().
         Foreground(lipgloss.Color("99"))
