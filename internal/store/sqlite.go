@@ -98,12 +98,15 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
 	countQuery := `SELECT COUNT(*) FROM message WHERE session_id = ?`
 	s.db.QueryRow(countQuery, id).Scan(&messageCount)
 	
-	// Query last messages from part table (contains actual content)
+	// Query user messages from part table (joined with message to filter role)
 	partQuery := `
-		SELECT data
-		FROM part
-		WHERE session_id = ?
-		ORDER BY time_created ASC
+		SELECT p.data
+		FROM part p
+		JOIN message m ON p.message_id = m.id
+		WHERE p.session_id = ?
+		  AND m.role = 'user'
+		  AND json_extract(p.data, '$.type') = 'text'
+		ORDER BY p.time_created ASC
 	`
 	
 	rows, err := s.db.Query(partQuery, id)
@@ -130,7 +133,7 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
 			continue
 		}
 		
-		// Only include text parts (user input)
+		// Only include user text messages
 		if partData.Type == "text" && partData.Text != "" {
 			messages = append(messages, Message{Content: partData.Text})
 		}

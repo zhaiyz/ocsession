@@ -19,8 +19,7 @@ var (
 	PreviewStyle = lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		Padding(0, 1).  // 修改为 0 padding，避免影响边框
-		MarginLeft(1)   // 添加左边距，避免与左侧面板贴在一起
+		Padding(1, 2)  // 恢复padding，确保内容不贴边框
 	
 	SearchPromptStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("99"))

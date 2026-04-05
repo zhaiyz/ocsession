@@ -222,15 +222,15 @@ func (m Model) View() string {
 		}
 	}
 
-	// 固定布局 - 避免选中行影响
+	// 固定布局
 	leftPanel := lipgloss.NewStyle().
-		Width(85).  // 左侧面板宽度
-		Height(22). // 增加高度到22
+		Width(82).
+		Height(20).
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(60).  // 增加右侧面板宽度到60（包含边框）
-		Height(22). // 增加高度到22（包含边框）
+		Width(58).  // 包含边框和padding
+		Height(20). // 包含边框和padding
 		Render(preview)
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
@@ -259,13 +259,24 @@ func renderPreview(detail store.SessionDetail) string {
 	// 标题
 	result.WriteString(styles.TitleStyle.Render("会话详情") + "\n\n")
 	
-	// 基本信息
-	result.WriteString(fmt.Sprintf("标题: %s\n", truncate(sess.Title, 35)))
+	// 基本信息 - 标题完整显示（每行限制50字符）
+	title := sess.Title
+	if runewidth.StringWidth(title) > 50 {
+		// 多行显示长标题
+		lines := wrapText(title, 50)
+		result.WriteString(fmt.Sprintf("标题: %s\n", lines[0]))
+		for i := 1; i < len(lines); i++ {
+			result.WriteString(fmt.Sprintf("      %s\n", lines[i]))
+		}
+	} else {
+		result.WriteString(fmt.Sprintf("标题: %s\n", title))
+	}
+	
 	result.WriteString(fmt.Sprintf("ID: %s\n", truncate(sess.ID, 25)))
 	
 	// 项目路径
 	if sess.Directory != "" {
-		result.WriteString(fmt.Sprintf("路径: %s\n", truncate(sess.Directory, 45)))
+		result.WriteString(fmt.Sprintf("路径: %s\n", truncate(sess.Directory, 40)))
 	}
 	
 	// 时间信息
@@ -286,7 +297,7 @@ func renderPreview(detail store.SessionDetail) string {
 	// 标签
 	if len(sess.Tags) > 0 {
 		tagsStr := strings.Join(sess.Tags, " ")
-		result.WriteString(fmt.Sprintf("\n标签: %s\n", tagsStr))
+		result.WriteString(fmt.Sprintf("\n标签: %s\n", truncate(tagsStr, 40)))
 	}
 	
 	// 别名
@@ -296,38 +307,51 @@ func renderPreview(detail store.SessionDetail) string {
 	
 	// 备注
 	if sess.Notes != "" {
-		result.WriteString(fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 70)))
+		result.WriteString(fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 45)))
 	}
 	
 	// 对话内容
 	if len(detail.LastMessages) > 0 {
 		result.WriteString("\n" + styles.HelpStyle.Render("─ 对话记录 ─") + "\n")
 		
-		// 显示开始和最后的消息
-		msgs := detail.LastMessages
-		showCount := len(msgs)
-		if showCount > 10 {
-			// 显示前3条和最后3条
-			for i := 0; i < 3 && i < showCount; i++ {
-				result.WriteString(formatMessage(msgs[i].Content, i+1))
-			}
-			if showCount > 6 {
-				result.WriteString(styles.HelpStyle.Render("... 省略中间消息 ...\n"))
-			}
-			for i := showCount - 3; i < showCount; i++ {
-				if i >= 3 {
-					result.WriteString(formatMessage(msgs[i].Content, i+1))
-				}
-			}
-		} else {
-			// 显示全部消息
-			for i, msg := range msgs {
-				result.WriteString(formatMessage(msg.Content, i+1))
-			}
+		// 显示最近10条用户输入
+		maxShow := 10
+		if len(detail.LastMessages) < maxShow {
+			maxShow = len(detail.LastMessages)
+		}
+		
+		for i := 0; i < maxShow; i++ {
+			msg := detail.LastMessages[i].Content
+			// 每条消息限制50字符，替换换行
+			cleanMsg := strings.ReplaceAll(msg, "\n", " ")
+			cleanMsg = strings.ReplaceAll(cleanMsg, "\r", " ")
+			truncated := truncate(cleanMsg, 50)
+			result.WriteString(fmt.Sprintf("%d. %s\n", i+1, truncated))
 		}
 	}
 	
 	return result.String()
+}
+
+// wrapText 文本换行
+func wrapText(text string, maxLen int) []string {
+	var lines []string
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{text}
+	}
+	
+	currentLine := words[0]
+	for _, word := range words[1:] {
+		if runewidth.StringWidth(currentLine+" "+word) <= maxLen {
+			currentLine += " " + word
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = word
+		}
+	}
+	lines = append(lines, currentLine)
+	return lines
 }
 
 // formatMessage 格式化单条消息
