@@ -174,11 +174,11 @@ func (m Model) View() string {
 		}
 		
 		timeStr := formatTime(sess.Updated)
-		title := truncate(sess.Title, 48)
+		title := truncate(sess.Title, 60)  // 增加标题宽度到60
 		
 		// 计算填充
 		titleWidth := runewidth.StringWidth(title)
-		padding := 50 - titleWidth
+		padding := 65 - titleWidth  // 增加基础padding到65
 		if padding < 1 {
 			padding = 1
 		}
@@ -211,12 +211,12 @@ func (m Model) View() string {
 
 	// 固定布局 - 避免选中行影响
 	leftPanel := lipgloss.NewStyle().
-		Width(72).
+		Width(85).  // 增加左侧面板宽度到85
 		Height(18).
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(52).
+		Width(50).  // 右侧面板保持50
 		Height(18).
 		Render(preview)
 
