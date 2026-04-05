@@ -1,0 +1,23 @@
+# config/config.example.toml
+[general]
+default_sort = "updated"
+preview_lines = 10
+max_sessions_display = 50
+theme = "default"
+suggestion_expire_days = 90
+
+[aliases]
+voice-input = "ses_2a725bdbbffeP9irDnInRMc2yQ"
+
+[session_tags.ses_2a725bdbbffeP9irDnInRMc2yQ]
+tags = ["voice-input", "active-project"]
+notes = "语音输入功能开发"
+
+[rules]
+tag_keywords = [
+    "开发: development",
+    "查询: exploration",
+    "测试: testing",
+]
+active_days = 7
+inactive_days = 30
