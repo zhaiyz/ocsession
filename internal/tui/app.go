@@ -177,17 +177,23 @@ func (m Model) View() string {
 		}
 		
 		timeStr := formatTime(sess.Updated)
-		title := truncate(sess.Title, 60)  // 增加标题宽度到60
 		
-		// 计算填充
+		// 提取文件夹名
+		folderName := extractFolderName(sess.Directory)
+		folder := truncate(folderName, 15)
+		
+		// 标题截断到35字符
+		title := truncate(sess.Title, 35)
+		
+		// 计算标题填充
 		titleWidth := runewidth.StringWidth(title)
-		padding := 65 - titleWidth  // 增加基础padding到65
-		if padding < 1 {
-			padding = 1
+		titlePadding := 38 - titleWidth
+		if titlePadding < 1 {
+			titlePadding = 1
 		}
 		
-		// 构建行
-		line := cursor + title + strings.Repeat(" ", padding) + timeStr
+		// 构建行：文件夹名(15) + 标题(35) + 时间
+		line := cursor + folder + strings.Repeat(" ", 16-runewidth.StringWidth(folder)) + title + strings.Repeat(" ", titlePadding) + timeStr
 		
 		if i == m.selectedIndex {
 			line = styles.SelectedItemStyle.Render(line)
@@ -224,7 +230,7 @@ func (m Model) View() string {
 
 	// 固定布局 - 确保边框完整
 	leftPanel := lipgloss.NewStyle().
-		Width(80).
+		Width(85).  // 增加宽度以容纳文件夹名
 		Height(22).
 		Render(list)
 	
@@ -274,9 +280,10 @@ func renderPreview(detail store.SessionDetail) string {
 	
 	result.WriteString(fmt.Sprintf("ID: %s\n", truncate(sess.ID, 25)))
 	
-	// 项目路径
+	// 文件夹名（从路径提取）
 	if sess.Directory != "" {
-		result.WriteString(fmt.Sprintf("路径: %s\n", truncate(sess.Directory, 40)))
+		folderName := extractFolderName(sess.Directory)
+		result.WriteString(fmt.Sprintf("文件夹: %s\n", folderName))
 	}
 	
 	// 时间信息
@@ -331,6 +338,19 @@ func renderPreview(detail store.SessionDetail) string {
 	}
 	
 	return result.String()
+}
+
+// extractFolderName 从目录路径提取文件夹名
+func extractFolderName(directory string) string {
+	if directory == "" {
+		return "-"
+	}
+	parts := strings.TrimRight(directory, "/")
+	folders := strings.Split(parts, "/")
+	if len(folders) > 0 {
+		return folders[len(folders)-1]
+	}
+	return directory
 }
 
 // wrapText 文本换行
