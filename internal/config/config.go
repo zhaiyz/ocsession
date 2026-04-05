@@ -1,5 +1,9 @@
+// Package config provides configuration management for the session manager.
+// It supports TOML-based configuration files with default values and
+// automatic configuration file creation.
 package config
 
+// GeneralConfig holds general application settings.
 type GeneralConfig struct {
     DefaultSort        string `toml:"default_sort"`
     PreviewLines       int    `toml:"preview_lines"`
@@ -8,11 +12,14 @@ type GeneralConfig struct {
     SuggestionExpireDays int  `toml:"suggestion_expire_days"`
 }
 
+// SessionTags represents tags and notes associated with a session.
 type SessionTags struct {
     Tags  []string `toml:"tags"`
     Notes string   `toml:"notes"`
 }
 
+// Config represents the main configuration structure for the session manager.
+// It contains general settings, command aliases, session tags, and rules.
 type Config struct {
     General       GeneralConfig            `toml:"general"`
     Aliases       map[string]string        `toml:"aliases"`
@@ -20,12 +27,14 @@ type Config struct {
     Rules         RulesConfig              `toml:"rules"`
 }
 
+// RulesConfig defines rules for session management.
 type RulesConfig struct {
     TagKeywords   []string `toml:"tag_keywords"`
     ActiveDays    int      `toml:"active_days"`
     InactiveDays  int      `toml:"inactive_days"`
 }
 
+// DefaultConfig returns a new Config instance with sensible default values.
 func DefaultConfig() *Config {
     return &Config{
         General: GeneralConfig{
