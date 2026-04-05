@@ -104,7 +104,7 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
 		FROM part p
 		JOIN message m ON p.message_id = m.id
 		WHERE p.session_id = ?
-		  AND m.role = 'user'
+		  AND json_extract(m.data, '$.role') = 'user'
 		  AND json_extract(p.data, '$.type') = 'text'
 		ORDER BY p.time_created ASC
 	`

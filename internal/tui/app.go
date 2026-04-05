@@ -259,7 +259,7 @@ func renderPreview(detail store.SessionDetail) string {
 	// 标题
 	result.WriteString(styles.TitleStyle.Render("会话详情") + "\n\n")
 	
-	// 基本信息 - 标题完整显示（每行限制50字符）
+	// 基本信息 - 标题完整显示
 	title := sess.Title
 	if runewidth.StringWidth(title) > 50 {
 		// 多行显示长标题
