@@ -209,18 +209,28 @@ func (m Model) View() string {
 	preview := ""
 	if len(m.sessions) > 0 && m.selectedIndex < len(m.sessions) {
 		sess := m.sessions[m.selectedIndex]
-		preview = renderPreview(sess)
+		
+		// 加载详细信息（包括消息）
+		if m.currentDetail == nil || m.currentDetail.Session.ID != sess.ID {
+			m.currentDetail, _ = m.sessionService.GetSessionDetail(sess.ID)
+		}
+		
+		if m.currentDetail != nil {
+			preview = renderPreview(*m.currentDetail)
+		} else {
+			preview = renderPreview(store.SessionDetail{Session: sess})
+		}
 	}
 
 	// 固定布局 - 避免选中行影响
 	leftPanel := lipgloss.NewStyle().
-		Width(85).  // 增加左侧面板宽度到85
-		Height(18).
+		Width(85).  // 左侧面板宽度
+		Height(22). // 增加高度到22
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(55).  // 增加右侧面板宽度到55
-		Height(18).
+		Width(60).  // 增加右侧面板宽度到60（包含边框）
+		Height(22). // 增加高度到22（包含边框）
 		Render(preview)
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
@@ -241,45 +251,95 @@ func (m Model) View() string {
 	)
 }
 
-func renderPreview(sess store.Session) string {
-	result := styles.TitleStyle.Render("会话详情") + "\n\n"
+func renderPreview(detail store.SessionDetail) string {
+	var result strings.Builder
+	
+	sess := detail.Session
+	
+	// 标题
+	result.WriteString(styles.TitleStyle.Render("会话详情") + "\n\n")
 	
 	// 基本信息
-	result += fmt.Sprintf("标题: %s\n", truncate(sess.Title, 38))
-	result += fmt.Sprintf("ID: %s\n", truncate(sess.ID, 28))
+	result.WriteString(fmt.Sprintf("标题: %s\n", truncate(sess.Title, 35)))
+	result.WriteString(fmt.Sprintf("ID: %s\n", truncate(sess.ID, 25)))
 	
-	// 提取项目名
-	projectName := extractProjectName(sess.Directory)
-	result += fmt.Sprintf("项目: %s\n", projectName)
+	// 项目路径
+	if sess.Directory != "" {
+		result.WriteString(fmt.Sprintf("路径: %s\n", truncate(sess.Directory, 45)))
+	}
 	
 	// 时间信息
-	result += fmt.Sprintf("更新: %s\n", formatTime(sess.Updated))
-	result += fmt.Sprintf("创建: %s\n", formatTime(sess.Created))
+	result.WriteString(fmt.Sprintf("更新: %s\n", formatTime(sess.Updated)))
+	result.WriteString(fmt.Sprintf("创建: %s\n", formatTime(sess.Created)))
 	
-	// 计算会话时长
+	// 会话时长
 	if sess.Updated > 0 && sess.Created > 0 {
-		duration := (sess.Updated - sess.Created) / 1000 // 转换为秒
-		durationStr := formatDuration(duration)
-		result += fmt.Sprintf("时长: %s\n", durationStr)
+		duration := (sess.Updated - sess.Created) / 1000
+		result.WriteString(fmt.Sprintf("时长: %s\n", formatDuration(duration)))
+	}
+	
+	// 统计信息
+	if detail.Stats.MessageCount > 0 {
+		result.WriteString(fmt.Sprintf("消息: %d 条\n", detail.Stats.MessageCount))
 	}
 	
 	// 标签
 	if len(sess.Tags) > 0 {
 		tagsStr := strings.Join(sess.Tags, " ")
-		result += fmt.Sprintf("\n标签: %s\n", tagsStr)
+		result.WriteString(fmt.Sprintf("\n标签: %s\n", tagsStr))
 	}
 	
 	// 别名
 	if sess.Alias != "" {
-		result += fmt.Sprintf("\n别名: %s\n", sess.Alias)
+		result.WriteString(fmt.Sprintf("\n别名: %s\n", sess.Alias))
 	}
 	
 	// 备注
 	if sess.Notes != "" {
-		result += fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 80))
+		result.WriteString(fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 70)))
 	}
 	
-	return result
+	// 对话内容
+	if len(detail.LastMessages) > 0 {
+		result.WriteString("\n" + styles.HelpStyle.Render("─ 对话记录 ─") + "\n")
+		
+		// 显示开始和最后的消息
+		msgs := detail.LastMessages
+		showCount := len(msgs)
+		if showCount > 10 {
+			// 显示前3条和最后3条
+			for i := 0; i < 3 && i < showCount; i++ {
+				result.WriteString(formatMessage(msgs[i].Content, i+1))
+			}
+			if showCount > 6 {
+				result.WriteString(styles.HelpStyle.Render("... 省略中间消息 ...\n"))
+			}
+			for i := showCount - 3; i < showCount; i++ {
+				if i >= 3 {
+					result.WriteString(formatMessage(msgs[i].Content, i+1))
+				}
+			}
+		} else {
+			// 显示全部消息
+			for i, msg := range msgs {
+				result.WriteString(formatMessage(msg.Content, i+1))
+			}
+		}
+	}
+	
+	return result.String()
+}
+
+// formatMessage 格式化单条消息
+func formatMessage(content string, index int) string {
+	// 简化消息内容
+	content = strings.TrimSpace(content)
+	if len(content) > 80 {
+		content = content[:77] + "..."
+	}
+	// 移除换行符
+	content = strings.ReplaceAll(content, "\n", " ")
+	return styles.MessageStyle.Render(fmt.Sprintf("%d. %s\n", index, content))
 }
 
 // extractProjectName 从目录路径提取项目名
