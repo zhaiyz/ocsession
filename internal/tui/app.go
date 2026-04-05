@@ -280,10 +280,9 @@ func renderPreview(detail store.SessionDetail) string {
 	
 	result.WriteString(fmt.Sprintf("ID: %s\n", truncate(sess.ID, 25)))
 	
-	// 文件夹名（从路径提取）
+	// 项目路径（完整路径）
 	if sess.Directory != "" {
-		folderName := extractFolderName(sess.Directory)
-		result.WriteString(fmt.Sprintf("文件夹: %s\n", folderName))
+		result.WriteString(fmt.Sprintf("路径: %s\n", truncate(sess.Directory, 45)))
 	}
 	
 	// 时间信息
