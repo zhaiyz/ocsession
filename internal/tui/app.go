@@ -23,6 +23,9 @@ type Model struct {
 	searchMode     bool
 	sessionService *service.SessionService
 	quitting       bool
+	
+	// 用于启动 OpenCode 的会话信息
+	SessionToStart *store.Session
 }
 
 func NewModel(svc *service.SessionService) Model {
@@ -70,28 +73,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.searchMode {
 				m.searchMode = false
 			} else if len(m.sessions) > 0 {
-				selectedSession := m.sessions[m.selectedIndex]
-				
-				// 直接启动 OpenCode
-				cmd := exec.Command("opencode", "-s", selectedSession.ID)
-				cmd.Dir = selectedSession.Directory
-				
-				// 设置标准输入输出
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Stdin = os.Stdin
-				
-				// 退出TUI，让OpenCode接管终端
+				// 保存要启动的会话
+				session := m.sessions[m.selectedIndex]
+				m.SessionToStart = &session
 				m.quitting = true
-				return m, tea.Sequence(
-					tea.Quit,
-					func() tea.Msg {
-						if err := cmd.Run(); err != nil {
-							fmt.Fprintf(os.Stderr, "\n错误: 无法启动会话: %v\n", err)
-						}
-						return nil
-					},
-				)
+				return m, tea.Quit
 			}
 		
 		case "r":
@@ -244,4 +230,19 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return runewidth.Truncate(s, maxLen-3, "...")
+}
+
+// RunOpenCode 启动 OpenCode 会话
+func RunOpenCode(session *store.Session) error {
+	if session == nil {
+		return fmt.Errorf("session is nil")
+	}
+	
+	cmd := exec.Command("opencode", "-s", session.ID)
+	cmd.Dir = session.Directory
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	
+	return cmd.Run()
 }
