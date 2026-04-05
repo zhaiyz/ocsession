@@ -18,6 +18,7 @@ import (
 
 type Model struct {
 	sessions       []store.Session
+	allSessions    []store.Session  // 保存所有会话用于搜索过滤
 	selectedIndex  int
 	searchQuery    string
 	searchMode     bool
@@ -29,8 +30,10 @@ type Model struct {
 }
 
 func NewModel(svc *service.SessionService) Model {
+	sessions := svc.GetAllSessions()
 	return Model{
-		sessions:       svc.GetAllSessions(),
+		sessions:       sessions,
+		allSessions:    sessions,
 		sessionService: svc,
 		selectedIndex:  0,
 		searchMode:     false,
@@ -44,49 +47,114 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			m.quitting = true
-			return m, tea.Quit
-		
-		case "up", "k":
-			if m.selectedIndex > 0 {
-				m.selectedIndex--
-			}
-		
-		case "down", "j":
-			if m.selectedIndex < len(m.sessions)-1 {
-				m.selectedIndex++
-			}
-		
-		case "/":
-			m.searchMode = true
-			m.searchQuery = ""
-		
-		case "esc":
-			if m.searchMode {
+		// 在搜索模式下，处理字符输入
+		if m.searchMode {
+			switch msg.Type {
+			case tea.KeyEsc:
+				// ESC 退出搜索模式
 				m.searchMode = false
 				m.searchQuery = ""
-			}
-		
-		case "enter":
-			if m.searchMode {
+				m.sessions = m.allSessions
+				m.selectedIndex = 0
+				
+			case tea.KeyEnter:
+				// Enter 退出搜索模式，保持过滤结果
 				m.searchMode = false
-			} else if len(m.sessions) > 0 {
-				// 保存要启动的会话
-				session := m.sessions[m.selectedIndex]
-				m.SessionToStart = &session
+				
+			case tea.KeyBackspace:
+				// 退格删除字符
+				if len(m.searchQuery) > 0 {
+					m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+					m.filterSessions()
+				}
+				
+			case tea.KeyRunes:
+				// 输入字符
+				m.searchQuery += string(msg.Runes)
+				m.filterSessions()
+				
+			default:
+				// 其他按键（如方向键）在搜索模式下也有效
+				switch msg.String() {
+				case "up", "k":
+					if m.selectedIndex > 0 {
+						m.selectedIndex--
+					}
+				case "down", "j":
+					if m.selectedIndex < len(m.sessions)-1 {
+						m.selectedIndex++
+					}
+				}
+			}
+		} else {
+			// 非搜索模式的按键处理
+			switch msg.String() {
+			case "q", "ctrl+c":
 				m.quitting = true
 				return m, tea.Quit
+			
+			case "up", "k":
+				if m.selectedIndex > 0 {
+					m.selectedIndex--
+				}
+			
+			case "down", "j":
+				if m.selectedIndex < len(m.sessions)-1 {
+					m.selectedIndex++
+				}
+			
+			case "/":
+				m.searchMode = true
+				m.searchQuery = ""
+			
+			case "enter":
+				if len(m.sessions) > 0 {
+					// 保存要启动的会话
+					session := m.sessions[m.selectedIndex]
+					m.SessionToStart = &session
+					m.quitting = true
+					return m, tea.Quit
+				}
+			
+			case "r":
+				_ = m.sessionService.LoadSessions()
+				m.allSessions = m.sessionService.GetAllSessions()
+				m.sessions = m.allSessions
 			}
-		
-		case "r":
-			_ = m.sessionService.LoadSessions()
-			m.sessions = m.sessionService.GetAllSessions()
 		}
 	}
 	
 	return m, nil
+}
+
+// filterSessions 根据搜索查询过滤会话
+func (m *Model) filterSessions() {
+	if m.searchQuery == "" {
+		m.sessions = m.allSessions
+		m.selectedIndex = 0
+		return
+	}
+	
+	query := strings.ToLower(m.searchQuery)
+	var filtered []store.Session
+	
+	for _, sess := range m.allSessions {
+		title := strings.ToLower(sess.Title)
+		dir := strings.ToLower(sess.Directory)
+		
+		// 标题或目录包含搜索词
+		if strings.Contains(title, query) || strings.Contains(dir, query) {
+			filtered = append(filtered, sess)
+		}
+	}
+	
+	m.sessions = filtered
+	if m.selectedIndex >= len(m.sessions) {
+		m.selectedIndex = len(m.sessions) - 1
+	}
+	if m.selectedIndex < 0 {
+		m.selectedIndex = 0
+	}
 }
 
 func (m Model) View() string {
@@ -128,6 +196,11 @@ func (m Model) View() string {
 	}
 	
 	list := strings.Join(listLines, "\n")
+	
+	// 如果没有搜索结果，显示提示
+	if len(m.sessions) == 0 && m.searchMode {
+		list = styles.HelpStyle.Render("  没有匹配的会话")
+	}
 
 	// 预览面板
 	preview := ""
@@ -151,9 +224,10 @@ func (m Model) View() string {
 
 	if m.searchMode {
 		searchBox := styles.SearchPromptStyle.Render("搜索: ") + m.searchQuery + "█"
+		helpText := styles.HelpStyle.Render("  [Esc:取消] [Enter:确认] [Backspace:删除]")
 		return lipgloss.JoinVertical(lipgloss.Left,
 			header,
-			searchBox,
+			searchBox + helpText,
 			mainContent,
 		)
 	}
