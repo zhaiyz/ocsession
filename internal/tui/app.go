@@ -2,11 +2,14 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
 
 	"github.com/opencode-session-manager/ocsession/internal/service"
 	"github.com/opencode-session-manager/ocsession/internal/store"
@@ -68,8 +71,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searchMode = false
 			} else if len(m.sessions) > 0 {
 				selectedSession := m.sessions[m.selectedIndex]
+				
+				// 打印提示信息
+				fmt.Printf("\n正在切换到会话: %s\n", selectedSession.Title)
+				fmt.Printf("会话ID: %s\n", selectedSession.ID)
+				fmt.Println("正在启动 OpenCode...")
+				
+				// 创建命令
 				cmd := exec.Command("opencode", "-s", selectedSession.ID)
-				cmd.Start()
+				
+				// 设置标准输入输出
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				cmd.Stdin = os.Stdin
+				
+				// 启动命令
+				if err := cmd.Start(); err != nil {
+					fmt.Printf("\n错误: 无法启动会话: %v\n", err)
+					fmt.Println("请确保 opencode 已正确安装并在 PATH 中")
+					fmt.Println("\n按任意键继续...")
+					time.Sleep(3 * time.Second)
+					return m, nil
+				}
+				
+				// 退出TUI，让opencode接管
 				return m, tea.Quit
 			}
 		
@@ -97,13 +122,21 @@ func (m Model) View() string {
 			cursor = "→ "
 		}
 		
+		// 格式化时间（固定宽度）
 		timeStr := formatTime(sess.Updated)
 		
-		line := fmt.Sprintf("%s %-40s %s", 
-			cursor, 
-			truncate(sess.Title, 40), 
-			styles.HelpStyle.Render(timeStr),
-		)
+		// 截断标题到固定显示宽度
+		title := truncate(sess.Title, 50)
+		
+		// 计算需要的填充空格（考虑中文字符宽度）
+		titleWidth := runewidth.StringWidth(title)
+		padding := 52 - titleWidth
+		if padding < 0 {
+			padding = 0
+		}
+		
+		// 构建行（固定时间列位置）
+		line := cursor + title + strings.Repeat(" ", padding) + timeStr
 		
 		if i == m.selectedIndex {
 			line = styles.SelectedItemStyle.Render(line)
@@ -121,7 +154,7 @@ func (m Model) View() string {
 	}
 
 	leftPanel := lipgloss.NewStyle().
-		Width(70).
+		Width(75).
 		Height(20).
 		Render(list)
 	
@@ -150,9 +183,9 @@ func (m Model) View() string {
 func renderPreview(sess store.Session) string {
 	result := styles.TitleStyle.Render("会话详情") + "\n\n"
 	
-	result += fmt.Sprintf("标题: %s\n", sess.Title)
+	result += fmt.Sprintf("标题: %s\n", truncate(sess.Title, 40))
 	result += fmt.Sprintf("ID: %s\n", truncate(sess.ID, 30))
-	result += fmt.Sprintf("目录: %s\n", sess.Directory)
+	result += fmt.Sprintf("目录: %s\n", truncate(sess.Directory, 40))
 	result += fmt.Sprintf("更新: %s\n", formatTime(sess.Updated))
 	result += fmt.Sprintf("创建: %s\n", formatTime(sess.Created))
 	
@@ -169,7 +202,7 @@ func renderPreview(sess store.Session) string {
 	}
 	
 	if sess.Notes != "" {
-		result += fmt.Sprintf("\n备注: %s\n", sess.Notes)
+		result += fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 100))
 	}
 	
 	return result
@@ -177,24 +210,28 @@ func renderPreview(sess store.Session) string {
 
 func formatTime(timestamp int64) string {
 	if timestamp == 0 {
-		return "-"
+		return "未知时间"
 	}
 	t := time.Unix(timestamp, 0)
 	now := time.Now()
 	diff := now.Sub(t)
 	
 	if diff.Hours() < 24 {
-		return t.Format("15:04")
+		// 今天 - 显示时间
+		return t.Format("今天 15:04")
 	} else if diff.Hours() < 24*7 {
-		return t.Format("周一 15:04")
+		// 本周 - 显示星期
+		return t.Format("Mon 15:04")
 	} else {
+		// 更早 - 显示日期
 		return t.Format("2006-01-02")
 	}
 }
 
 func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	width := runewidth.StringWidth(s)
+	if width <= maxLen {
 		return s
 	}
-	return s[:maxLen-3] + "..."
+	return runewidth.Truncate(s, maxLen-3, "...")
 }
