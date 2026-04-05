@@ -222,15 +222,15 @@ func (m Model) View() string {
 		}
 	}
 
-	// 固定布局
+	// 固定布局 - 确保边框完整
 	leftPanel := lipgloss.NewStyle().
-		Width(82).
-		Height(20).
+		Width(80).
+		Height(22).
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(58).  // 包含边框和padding
-		Height(20). // 包含边框和padding
+		Width(60).
+		Height(22).
 		Render(preview)
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
