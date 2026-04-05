@@ -70,7 +70,7 @@ func (s *SQLiteStore) LoadSessions() ([]Session, error) {
     return sessions, nil
 }
 
-// GetSessionDetail loads session detail with messages
+// GetSessionDetail loads session detail with messages and stats
 func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
     // Query session basic info
     sessQuery := `
@@ -92,13 +92,18 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
         return nil, fmt.Errorf("failed to query session: %w", err)
     }
     
-    // Query last messages (simplified - just get message data)
+    // Query message count
+    var messageCount int
+    countQuery := `SELECT COUNT(*) FROM message WHERE session_id = ?`
+    s.db.QueryRow(countQuery, id).Scan(&messageCount)
+    
+    // Query last messages
     msgQuery := `
         SELECT data
         FROM message
         WHERE session_id = ?
         ORDER BY time_created DESC
-        LIMIT 10
+        LIMIT 5
     `
     
     rows, err := s.db.Query(msgQuery, id)
@@ -114,14 +119,22 @@ func (s *SQLiteStore) GetSessionDetail(id string) (*SessionDetail, error) {
         if err != nil {
             return nil, fmt.Errorf("failed to scan message: %w", err)
         }
-        // Create a message with the data content
         messages = append(messages, Message{Content: data})
+    }
+    
+    // Calculate session duration
+    duration := int64(0)
+    if sess.Updated > 0 && sess.Created > 0 {
+        duration = (sess.Updated - sess.Created) / 1000 // milliseconds to seconds
     }
     
     return &SessionDetail{
         Session:      sess,
         LastMessages: messages,
-        Stats:        SessionStats{}, // TODO: implement stats calculation
+        Stats: SessionStats{
+            MessageCount: messageCount,
+            Duration:     duration,
+        },
     }, nil
 }
 

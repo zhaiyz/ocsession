@@ -27,6 +27,9 @@ type Model struct {
 	
 	// 用于启动 OpenCode 的会话信息
 	SessionToStart *store.Session
+	
+	// 当前选中会话的详细信息
+	currentDetail  *store.SessionDetail
 }
 
 func NewModel(svc *service.SessionService) Model {
@@ -216,7 +219,7 @@ func (m Model) View() string {
 		Render(list)
 	
 	rightPanel := styles.PreviewStyle.
-		Width(50).  // 右侧面板保持50
+		Width(55).  // 增加右侧面板宽度到55
 		Height(18).
 		Render(preview)
 
@@ -241,26 +244,75 @@ func (m Model) View() string {
 func renderPreview(sess store.Session) string {
 	result := styles.TitleStyle.Render("会话详情") + "\n\n"
 	
-	result += fmt.Sprintf("标题: %s\n", truncate(sess.Title, 40))
-	result += fmt.Sprintf("ID: %s\n", truncate(sess.ID, 30))
-	result += fmt.Sprintf("目录: %s\n", truncate(sess.Directory, 40))
+	// 基本信息
+	result += fmt.Sprintf("标题: %s\n", truncate(sess.Title, 38))
+	result += fmt.Sprintf("ID: %s\n", truncate(sess.ID, 28))
+	
+	// 提取项目名
+	projectName := extractProjectName(sess.Directory)
+	result += fmt.Sprintf("项目: %s\n", projectName)
+	
+	// 时间信息
 	result += fmt.Sprintf("更新: %s\n", formatTime(sess.Updated))
 	result += fmt.Sprintf("创建: %s\n", formatTime(sess.Created))
 	
+	// 计算会话时长
+	if sess.Updated > 0 && sess.Created > 0 {
+		duration := (sess.Updated - sess.Created) / 1000 // 转换为秒
+		durationStr := formatDuration(duration)
+		result += fmt.Sprintf("时长: %s\n", durationStr)
+	}
+	
+	// 标签
 	if len(sess.Tags) > 0 {
 		tagsStr := strings.Join(sess.Tags, " ")
 		result += fmt.Sprintf("\n标签: %s\n", tagsStr)
 	}
 	
+	// 别名
 	if sess.Alias != "" {
 		result += fmt.Sprintf("\n别名: %s\n", sess.Alias)
 	}
 	
+	// 备注
 	if sess.Notes != "" {
-		result += fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 100))
+		result += fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 80))
 	}
 	
 	return result
+}
+
+// extractProjectName 从目录路径提取项目名
+func extractProjectName(directory string) string {
+	if directory == "" {
+		return "-"
+	}
+	parts := strings.Split(strings.TrimRight(directory, "/"), "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return directory
+}
+
+// formatDuration 格式化持续时间
+func formatDuration(seconds int64) string {
+	if seconds < 60 {
+		return fmt.Sprintf("%d秒", seconds)
+	} else if seconds < 3600 {
+		minutes := seconds / 60
+		secs := seconds % 60
+		if secs > 0 {
+			return fmt.Sprintf("%d分%d秒", minutes, secs)
+		}
+		return fmt.Sprintf("%d分钟", minutes)
+	} else {
+		hours := seconds / 3600
+		minutes := (seconds % 3600) / 60
+		if minutes > 0 {
+			return fmt.Sprintf("%d小时%d分", hours, minutes)
+		}
+		return fmt.Sprintf("%d小时", hours)
+	}
 }
 
 func formatTime(timestamp int64) string {

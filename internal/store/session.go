@@ -21,10 +21,11 @@ type SessionDetail struct {
 }
 
 type SessionStats struct {
-    TokenCount    int
-    MessageCount  int
-    ToolCallCount int
-    Cost          float64
+	TokenCount    int
+	MessageCount  int
+	ToolCallCount int
+	Cost          float64
+	Duration      int64  // 会话持续时间（秒）
 }
 
 type FilterCriteria struct {
