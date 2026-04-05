@@ -1,0 +1,6 @@
+bin/
+*.db
+*.db-shm
+*.db-wal
+config.toml
+.DS_Store
