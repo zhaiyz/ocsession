@@ -57,7 +57,7 @@
 **修复后**：
 ```
 正在切换到会话: Todo-list app development
-会话ID: ses_2a1ebb6caffe...
+会话ID: <session-id>
 正在启动 OpenCode...
 ```
 显示详细提示，成功切换到 OpenCode。

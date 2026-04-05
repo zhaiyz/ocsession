@@ -7,9 +7,9 @@ theme = "default"
 suggestion_expire_days = 90
 
 [aliases]
-voice-input = "ses_2a725bdbbffeP9irDnInRMc2yQ"
+voice-input = "<session-id>"
 
-[session_tags.ses_2a725bdbbffeP9irDnInRMc2yQ]
+[session_tags.<session-id>]
 tags = ["voice-input", "active-project"]
 notes = "语音输入功能开发"
 

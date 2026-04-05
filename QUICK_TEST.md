@@ -162,7 +162,7 @@ which opencode
 opencode --version
 
 # 手动测试启动命令
-opencode -s ses_2a1ebb6caffeT2kcu2hQsWHaU7
+opencode -s <session-id>
 ```
 
 ### 问题3: 新窗口未打开

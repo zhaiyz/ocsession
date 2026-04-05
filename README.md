@@ -152,12 +152,17 @@ ocsession
 编辑配置文件：
 
 ```toml
-[session_tags.ses_2a725bdbbffeP9irDnInRMc2yQ]
-tags = ["voice-input", "active-project", "production"]
-notes = "语音输入功能开发，已完成基础功能"
+[general]
+default_sort = "updated"      # 默认排序方式
+preview_lines = 10            # 预览显示行数
+max_sessions_display = 50     # 最大显示会话数
 
 [aliases]
-voice-input = "ses_2a725bdbbffeP9irDnInRMc2yQ"
+my-project = "<session-id>"
+
+[session_tags.<session-id>]
+tags = ["development", "active"]
+notes = "项目描述"
 ```
 
 保存后按 `r` 刷新列表即可看到效果。
