@@ -30,6 +30,9 @@ type Model struct {
 	SessionToStart *store.Session
 
 	currentDetail *store.SessionDetail
+
+	width  int
+	height int
 }
 
 func NewModel(svc *service.SessionService, agentCfg *agent.AgentConfig) Model {
@@ -41,11 +44,13 @@ func NewModel(svc *service.SessionService, agentCfg *agent.AgentConfig) Model {
 		selectedIndex:  0,
 		searchMode:     false,
 		agentConfig:    agentCfg,
+		width:          120,
+		height:         25,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return tea.WindowSize()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
