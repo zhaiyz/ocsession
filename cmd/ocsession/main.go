@@ -89,7 +89,7 @@ func main() {
 	}
 
 	model := tui.NewModel(sessionSvc, agentCfg)
-	p := tea.NewProgram(model)
+	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	finalModel, err := p.Run()
 	if err != nil {
