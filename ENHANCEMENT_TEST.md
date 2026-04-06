@@ -175,11 +175,6 @@ ID: ses_2a1ebb6caffeT2kcu2...
 时长: 2小时30分
 消息: 288 条
 
-标签: development active-project
-别名: ocsession-dev
-
-备注: OpenCode会话管理工具开发
-
 ─ 对话记录 ─
 1. 我来创建一个OpenCode session管理程序
 2. 好的，我来帮你创建一个TUI应用...

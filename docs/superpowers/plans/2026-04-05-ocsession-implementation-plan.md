@@ -33,19 +33,14 @@ ocsession/
 │   │
 │   ├── service/
 │   │   ├── session_service.go   └── 职责：会话列表加载/搜索/过滤
-│   │   ├── tag_service.go       └── 职责：标签CRUD操作
-│   │   ├── alias_service.go     └── 职责：别名映射管理
 │   │   ├── search_engine.go     └── 职责：模糊搜索算法
-│   │   └── suggestion.go        └── 职责：智能建议生成
 │   │
 │   ├── tui/
 │   │   ├── app.go               └── 职责：Bubbletea主应用
 │   │   ├── components/
 │   │   │   ├── list.go          └── 职责：会话列表组件
 │   │   │   ├── preview.go       └── 职责：预览面板
-│   │   │   ├── search.go        └── 职责：搜索输入框
-│   │   │   ├── tag_manager.go   └── 职责：标签管理界面
-│   │   │   └── alias_manager.go └── 职责：别名管理界面
+│   │   │   └── search.go        └── 职责：搜索输入框
 │   │   ├── styles/theme.go      └── 职责：样式定义
 │   │   └── keybinds.go          └── 职责：快捷键处理
 │   │
@@ -183,10 +178,6 @@ func TestDefaultConfig(t *testing.T) {
     if cfg.General.PreviewLines != 10 {
         t.Errorf("Expected PreviewLines 10, got %d", cfg.General.PreviewLines)
     }
-    
-    if len(cfg.Rules.TagKeywords) == 0 {
-        t.Error("Expected non-empty TagKeywords")
-    }
 }
 ```
 
@@ -205,25 +196,10 @@ type GeneralConfig struct {
     PreviewLines       int    `toml:"preview_lines"`
     MaxSessionsDisplay int    `toml:"max_sessions_display"`
     Theme              string `toml:"theme"`
-    SuggestionExpireDays int  `toml:"suggestion_expire_days"`
-}
-
-type SessionTags struct {
-    Tags  []string `toml:"tags"`
-    Notes string   `toml:"notes"`
 }
 
 type Config struct {
-    General       GeneralConfig            `toml:"general"`
-    Aliases       map[string]string        `toml:"aliases"`
-    SessionTags   map[string]SessionTags   `toml:"session_tags"`
-    Rules         RulesConfig              `toml:"rules"`
-}
-
-type RulesConfig struct {
-    TagKeywords   []string `toml:"tag_keywords"`
-    ActiveDays    int      `toml:"active_days"`
-    InactiveDays  int      `toml:"inactive_days"`
+    General GeneralConfig `toml:"general"`
 }
 
 func DefaultConfig() *Config {
@@ -233,20 +209,6 @@ func DefaultConfig() *Config {
             PreviewLines:       10,
             MaxSessionsDisplay: 50,
             Theme:              "default",
-            SuggestionExpireDays: 90,
-        },
-        Aliases:     make(map[string]string),
-        SessionTags: make(map[string]SessionTags),
-        Rules: RulesConfig{
-            TagKeywords: []string{
-                "开发: development",
-                "实现: implementation",
-                "查询: exploration",
-                "测试: testing",
-                "修复: bugfix",
-            },
-            ActiveDays:   7,
-            InactiveDays: 30,
         },
     }
 }
@@ -350,23 +312,6 @@ default_sort = "updated"
 preview_lines = 10
 max_sessions_display = 50
 theme = "default"
-suggestion_expire_days = 90
-
-[aliases]
-voice-input = "ses_2a725bdbbffeP9irDnInRMc2yQ"
-
-[session_tags.ses_2a725bdbbffeP9irDnInRMc2yQ]
-tags = ["voice-input", "active-project"]
-notes = "语音输入功能开发"
-
-[rules]
-tag_keywords = [
-    "开发: development",
-    "查询: exploration",
-    "测试: testing",
-]
-active_days = 7
-inactive_days = 30
 ```
 
 - [ ] **Step 7: 提交配置管理模块**
@@ -401,11 +346,6 @@ type Session struct {
     Updated   time.Time `json:"updated"`
     ProjectID string    `json:"project_id"`
     Directory string    `json:"directory"`
-    
-    // Extended fields from config
-    Tags      []string
-    Alias     string
-    Notes     string
 }
 
 type SessionDetail struct {
@@ -422,7 +362,6 @@ type SessionStats struct {
 }
 
 type FilterCriteria struct {
-    Tags       []string
     Project    string
     DateFrom   time.Time
     DateTo     time.Time
@@ -675,22 +614,6 @@ func (s *SessionService) LoadSessions() error {
     if err != nil {
         return err
     }
-    
-    // Merge config data (tags, alias, notes)
-    for i, sess := range sessions {
-        if tags, ok := s.config.SessionTags[sess.ID]; ok {
-            sessions[i].Tags = tags.Tags
-            sessions[i].Notes = tags.Notes
-        }
-        
-        for alias, sessID := range s.config.Aliases {
-            if sessID == sess.ID {
-                sessions[i].Alias = alias
-                break
-            }
-        }
-    }
-    
     s.sessions = sessions
     return nil
 }
@@ -1032,9 +955,6 @@ git commit -m "chore: update Makefile for build verification"
 - 会话列表浏览
 - 实时模糊搜索
 - 会话预览
-- 标签管理
-- 别名管理
-- 智能建议
 
 ## 安装
 

@@ -387,22 +387,6 @@ func renderPreview(detail store.SessionDetail) string {
 		result.WriteString(fmt.Sprintf("消息: %d 条\n", detail.Stats.MessageCount))
 	}
 
-	// 标签
-	if len(sess.Tags) > 0 {
-		tagsStr := strings.Join(sess.Tags, " ")
-		result.WriteString(fmt.Sprintf("\n标签: %s\n", truncate(tagsStr, 40)))
-	}
-
-	// 别名
-	if sess.Alias != "" {
-		result.WriteString(fmt.Sprintf("\n别名: %s\n", sess.Alias))
-	}
-
-	// 备注
-	if sess.Notes != "" {
-		result.WriteString(fmt.Sprintf("\n备注: %s\n", truncate(sess.Notes, 45)))
-	}
-
 	// 对话内容
 	if len(detail.LastMessages) > 0 {
 		result.WriteString("\n" + styles.HelpStyle.Render("─ 对话记录 ─") + "\n")

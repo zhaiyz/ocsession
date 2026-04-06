@@ -10,8 +10,7 @@
 - **会话详情预览** - 显示完整信息（标题、ID、路径、时长、对话记录等）
 - **对话记录显示** - 显示用户输入的前5条和后5条消息
 - **智能时间显示** - 统一中文格式（今天/周一/2026-04-06）
-- **标签管理** - 通过配置文件添加标签分类
-- **别名管理** - 设置快速访问别名
+
 - **一键启动** - 按 Enter 直接切换到 OpenCode 会话
 
 ## 特性亮点
@@ -172,10 +171,6 @@ curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | b
 │                                  │ 时长: 2小时30分          │
 │                                  │ 消息: 288 条             │
 │                                  │                           │
-│                                  │ 标签: dev active         │
-│                                  │ 别名: ocsession-dev      │
-│                                  │ 备注: xxx                │
-│                                  │                           │
 │                                  │ ─ 对话记录 ─             │
 │                                  │ 1. 创建session管理程序   │
 │                                  │ 2. 使用中文              │
@@ -216,7 +211,7 @@ curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | b
 ### 3. 查看会话详情
 
 - 右侧面板显示选中会话的详细信息
-- 包含：标题、ID、完整路径、时间、时长、消息数、标签、别名、备注
+- 包含：标题、ID、完整路径、时间、时长、消息数
 - **对话记录**：显示用户输入的前5条和后5条消息
   - 少于等于10条：全部显示
   - 超过10条：前5条 + 省略提示 + 后5条
@@ -237,25 +232,14 @@ curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | b
 
 配置文件位于 `~/.config/ocsession/config.toml`
 
-### 添加标签和别名
-
-编辑配置文件：
+配置文件示例：
 
 ```toml
 [general]
 default_sort = "updated"      # 默认排序方式
 preview_lines = 10            # 预览显示行数
 max_sessions_display = 50     # 最大显示会话数
-
-[aliases]
-my-project = "<session-id>"
-
-[session_tags.<session-id>]
-tags = ["development", "active"]
-notes = "项目描述"
 ```
-
-保存后按 `r` 刷新列表即可看到效果。
 
 ## 📊 时间显示
 
@@ -279,11 +263,7 @@ notes = "项目描述"
 2. 输入项目名或关键词
 3. 选择会话按 `Enter` 继续
 
-### 场景3: 管理活跃项目
 
-1. 在配置文件中添加标签和别名
-2. 按 `r` 刷新列表
-3. 通过标签快速识别项目状态
 
 ## 开发
 

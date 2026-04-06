@@ -19,9 +19,6 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("Expected PreviewLines 10, got %d", cfg.General.PreviewLines)
 	}
 
-	if len(cfg.Rules.TagKeywords) == 0 {
-		t.Error("Expected non-empty TagKeywords")
-	}
 }
 
 func TestSaveConfig(t *testing.T) {
@@ -56,7 +53,6 @@ func TestLoadConfig(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.General.Theme = "dark"
-	cfg.Aliases["test"] = "test-value"
 
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		t.Fatalf("Failed to save test config: %v", err)
@@ -69,10 +65,6 @@ func TestLoadConfig(t *testing.T) {
 
 	if loaded.General.Theme != "dark" {
 		t.Errorf("Expected Theme 'dark', got '%s'", loaded.General.Theme)
-	}
-
-	if loaded.Aliases["test"] != "test-value" {
-		t.Errorf("Expected Aliases['test'] 'test-value', got '%s'", loaded.Aliases["test"])
 	}
 }
 

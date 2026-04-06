@@ -10,16 +10,13 @@
 
 ### 1.1 项目目标
 
-创建一个终端界面(TUI)工具，帮助用户快速管理和切换OpenCode会话。通过标签、别名、智能建议和模糊搜索，提升会话管理效率。
+创建一个终端界面(TUI)工具，帮助用户快速管理和切换OpenCode会话。通过模糊搜索，提升会话管理效率。
 
 ### 1.2 核心功能
 
-- **会话列表浏览**: 显示所有OpenCode会话，包含标题、目录、标签、时间信息
-- **实时模糊搜索**: 快速查找会话（搜索标题、目录、标签、别名、备注）
-- **会话预览**: 显示最后消息、文件变更、token统计、用户备注
-- **标签管理**: 为会话添加标签，组织会话分类
-- **别名管理**: 设置快速访问别名，一键跳转到常用会话
-- **智能建议**: 自动建议标签和别名，用户可选择确认
+- **会话列表浏览**: 显示所有OpenCode会话，包含标题、目录、时间信息
+- **实时模糊搜索**: 快速查找会话（搜索标题、目录）
+- **会话预览**: 显示最后消息、文件变更、token统计
 - **继续会话**: 快速切换到OpenCode继续开发
 
 ### 1.3 技术栈
@@ -50,10 +47,7 @@
 ┌─────────────────────────────────────┐
 │      业务逻辑层 (Service)           │
 │  - SessionService                    │
-│  - TagService                        │
-│  - AliasService                      │
 │  - SearchEngine                      │
-│  - SuggestionGenerator               │
 └─────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────┐
@@ -81,11 +75,6 @@ main() → 加载配置 → 连接数据库 → 加载会话列表 → 构建搜
 选择会话 → 执行 opencode -s <session-id> → 切换到OpenCode TUI
 ```
 
-**标签管理流程**:
-```
-用户添加标签 → TagService.SetTags() → ConfigStore保存 → 更新界面
-```
-
 ---
 
 ## 3. 核心模块设计
@@ -95,7 +84,7 @@ main() → 加载配置 → 连接数据库 → 加载会话列表 → 构建搜
 **职责**:
 - 加载会话列表（从SQLite或CLI）
 - 会话排序（按更新时间、创建时间、访问频率）
-- 会话过滤（按标签、项目、日期范围）
+- 会话过滤（按项目、日期范围）
 - 会话搜索（模糊匹配）
 
 **核心方法**:
@@ -111,53 +100,11 @@ GetSessionDetail(id string) SessionDetail
 - 搜索使用倒排索引
 - 增量更新检测（每分钟检查updated时间戳）
 
-### 3.2 TagService (标签服务)
-
-**职责**:
-- 标签CRUD操作
-- 标签建议生成
-- 标签统计（使用频率、热门标签）
-- 批量标签操作
-
-**核心方法**:
-```go
-GetTags(sessionId string) []string
-SetTags(sessionId string, tags []string) error
-SuggestTags(session Session) []TagSuggestion
-GetAllTags() []string
-```
-
-**建议规则**:
-- 项目标签：从目录名自动生成
-- 类型标签：从标题关键词识别（开发→development, 查询→exploration）
-- 状态标签：根据活跃度（最近7天→active, 超过30天→inactive）
-
-### 3.3 AliasService (别名服务)
-
-**职责**:
-- 别名映射管理
-- 别名建议生成
-- 别名冲突检测
-- 快速跳转功能
-
-**核心方法**:
-```go
-GetAlias(name string) (string, bool)
-SetAlias(name string, sessionId string) error
-SuggestAlias(session Session) string
-ResolveAlias(name string) string
-```
-
-**命名规则**:
-- 仅允许字母、数字、连字符
-- 长度限制3-20字符
-- 自动去除空格和特殊字符
-
-### 3.4 SearchEngine (搜索引擎)
+### 3.2 SearchEngine (搜索引擎)
 
 **职责**:
 - 模糊搜索实现
-- 多字段搜索（标题、目录、标签、别名、备注）
+- 多字段搜索（标题、目录）
 - 搜索结果排序（相关性、时间）
 - 搜索历史记录
 
@@ -172,26 +119,6 @@ HighlightMatch(text string, query string) string
 - Fuzzy matching（类似fzf）
 - 支持前缀匹配、子串匹配、正则匹配
 - 搜索结果按匹配度评分排序
-
-### 3.5 SuggestionGenerator (智能建议生成器)
-
-**职责**:
-- 标签自动建议
-- 别名自动建议
-- 建议冲突检测
-- 建议过期管理
-
-**建议策略**:
-- 从会话标题提取关键词（去除停用词）
-- 从目录路径提取项目名
-- 从活跃度计算状态标签
-- 检查冲突：如果已有相同别名，添加数字后缀
-
-**建议展示**:
-- 首次启动：批量建议界面
-- 打开详情：单会话建议提示
-- 待确认建议存入 `~/.cache/ocsession/suggestions.json`
-- 未确认建议90天后自动过期
 
 ---
 
@@ -209,22 +136,23 @@ HighlightMatch(text string, query string) string
 │                      │ 会话ID: ses_2a725bdbbffeP9irDnInRMc2yQ   │
 │ ✅ voice-input       │                                          │
 │   📁 voice-input     │ 📋 最后消息 (10行)                       │
-│   🏷️ active, dev     │ ────────────────────────────────────── │
-│                      │ > 已完成语音输入基础功能实现             │
-│ ○ empty-main         │ > 测试通过，可以继续添加高级特性        │
-│   📁 empty           │ > 下一步：添加语音识别准确性优化        │
-│   🏷️ exploration     │                                          │
-│                      │ 📊 会话统计                              │
-│ ○ todo-list-dev      │ Tokens: 1250 | 成本: ¥0.15              │
-│   📁 todo-list       │ 消息数: 12 | 工具调用: 8                 │
-│   🏷️ development     │                                          │
-│                      │ 📝 用户备注                              │
-│ ○ old-session        │ 语音输入功能开发，已完成基础功能         │
+│                      │                                          │
+│                      │                                          │
+│ ○ empty-main         │                                          │
+│   📁 empty           │                                          │
+│                      │                                          │
+│                      │                                          │
+│                      │                                          │
+│ ○ todo-list-dev      │                                          │
+│   📁 todo-list       │                                          │
+│                      │                                          │
+│                      │                                          │
+│ ○ old-session        │                                          │
 │   📁 empty           │                                          │
 │   ⏰ 30天前          │                                          │
 │                      │                                          │
 ├──────────────────────┴──────────────────────────────────────────┤
-│ [Enter:继续] [t:标签] [a:别名] [d:删除] [/:搜索] [r:刷新]       │
+│ [Enter:继续] [d:删除] [/:搜索] [r:刷新]                          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -232,30 +160,20 @@ HighlightMatch(text string, query string) string
 
 **启动与列表显示**:
 - 启动 `ocsession` → 加载会话列表 → 默认显示最近更新的20个会话
-- 列表项显示：状态图标(✅活跃/○非活跃)、标题、目录图标📁、标签🏷️、时间⏰
+- 列表项显示：状态图标(✅活跃/○非活跃)、标题、目录图标📁、时间⏰
 
 **搜索与过滤**:
 - 按 `/` 键进入搜索模式 → 输入关键词 → 实时模糊匹配
-- 搜索范围：标题、目录、标签、别名、备注
+- 搜索范围：标题、目录
 - 支持正则表达式（高级模式）
 
 **会话选择与预览**:
 - 上/下键导航 → Enter键选择 → 右侧显示详细预览
-- 预览内容：最后消息、文件变更列表、token统计、用户备注
+- 预览内容：最后消息、文件变更列表、token统计
 
 **继续会话**:
 - Enter键 → 执行 `opencode -s <session-id>` → 自动切换到OpenCode TUI
 - 或按 `o` 键 → 在新终端窗口打开会话（保留ocsession窗口）
-
-**标签管理**:
-- 按 `t` 键 → 打开标签管理界面
-- 显示：现有标签、建议标签、添加新标签输入框
-- 支持批量操作（选中多个会话后批量添加标签）
-
-**别名管理**:
-- 按 `a` 键 → 打开别名设置界面
-- 显示：当前别名、建议别名、手动输入框
-- 支持快速跳转：输入别名 → 直接打开对应会话
 
 ### 4.3 键盘快捷键
 
@@ -264,8 +182,6 @@ HighlightMatch(text string, query string) string
 | `/` | 搜索模式 | 进入搜索输入框 |
 | `Esc` | 取消操作 | 退出搜索/管理界面 |
 | `Enter` | 继续会话 | 切换到OpenCode会话 |
-| `t` | 标签管理 | 打开标签管理界面 |
-| `a` | 别名管理 | 打开别名设置界面 |
 | `d` | 删除会话 | 删除选中会话（需确认） |
 | `r` | 刷新列表 | 重新加载会话数据 |
 | `h` | 帮助 | 显示快捷键帮助 |
@@ -290,11 +206,6 @@ HighlightMatch(text string, query string) string
    - 命令: `opencode session list`, `opencode export`
    - 优势: 不依赖数据库结构，兼容性好
    - 降级场景: SQLite访问失败时自动切换
-
-3. **配置文件** (用户数据)
-   - 路径: `~/.config/ocsession/config.toml`
-   - 内容: 标签、别名、备注、用户设置
-   - 格式: TOML（易读易编辑）
 
 ### 5.2 SQLite查询策略
 
@@ -328,30 +239,6 @@ default_sort = "updated"
 preview_lines = 10
 max_sessions_display = 50
 theme = "default"
-suggestion_expire_days = 90
-
-[aliases]
-voice-input = "ses_2a725bdbbffeP9irDnInRMc2yQ"
-empty-main = "ses_2a22269a2ffeuBRrFq5LKxo6pl"
-
-[session_tags.ses_2a725bdbbffeP9irDnInRMc2yQ]
-tags = ["voice-input", "active-project", "production"]
-notes = "语音输入功能开发，已完成基础功能"
-
-[session_tags.ses_2a22269a2ffeuBRrFq5LKxo6pl]
-tags = ["exploration", "skills"]
-notes = "查询可用的skills和commands"
-
-[rules]
-tag_keywords = [
-    "开发: development",
-    "实现: implementation",
-    "查询: exploration",
-    "测试: testing",
-    "修复: bugfix",
-]
-active_days = 7
-inactive_days = 30
 ```
 
 ### 5.4 缓存数据
@@ -360,11 +247,6 @@ inactive_days = 30
 - 路径: `~/.cache/ocsession/search_index.json`
 - 内容: 倒排索引结构（关键词→会话ID映射）
 - 更新策略: 每小时重建或会话变更时重建
-
-**建议缓存**:
-- 路径: `~/.cache/ocsession/suggestions.json`
-- 内容: 待确认的标签/别名建议
-- 过期策略: 90天未确认自动删除
 
 **预览缓存**:
 - 路径: `~/.cache/ocsession/previews/`
@@ -397,19 +279,14 @@ ocsession/
 │   │
 │   ├── service/
 │   │   ├── session_service.go   # 会话服务
-│   │   ├── tag_service.go       # 标签服务
-│   │   ├── alias_service.go     # 别名服务
-│   │   ├── search_engine.go     # 搜索引擎
-│   │   └── suggestion.go        # 智能建议生成器
+│   │   └── search_engine.go     # 搜索引擎
 │   │
 │   ├── tui/
 │   │   ├── app.go               # Bubbletea主应用
 │   │   ├── components/
 │   │   │   ├── list.go          # 会话列表组件
 │   │   │   ├── preview.go       # 预览面板组件
-│   │   │   ├── search.go        # 搜索输入组件
-│   │   │   ├── tag_manager.go   # 标签管理界面
-│   │   │   └── alias_manager.go # 别名管理界面
+│   │   │   └── search.go        # 搜索输入组件
 │   │   ├── styles/
 │   │   │   └── theme.go         # Lipgloss样式定义
 │   │   └── keybinds.go          # 键盘快捷键处理
@@ -433,8 +310,7 @@ ocsession/
 │       └── config.go            # Config公开模型
 │
 ├── config/
-│   ├── config.example.toml      # 配置文件示例
-│   └── rules.yaml               # 智能建议规则配置
+│   └── config.example.toml      # 配置文件示例
 │
 ├── scripts/
 │   ├── install.sh               # 安装脚本
@@ -484,17 +360,6 @@ ocsession/
 - 自动创建默认配置文件
 - 显示提示："✓ 已创建默认配置文件"
 
-### 7.3 用户输入错误
-
-**别名命名不规范**:
-- 实时验证输入（仅允许字母数字连字符）
-- 显示错误："别名仅允许字母、数字、连字符（3-20字符）"
-- 自动修正建议（去除空格和特殊字符）
-
-**标签已存在**:
-- 显示提示："标签 'xxx' 已存在"
-- 防止重复添加
-
 ### 7.4 日志管理
 
 **日志级别**:
@@ -516,7 +381,6 @@ ocsession/
 
 **测试重点**:
 - fuzzy/matcher.go: 模糊匹配算法准确性
-- service/suggestion.go: 智能建议生成规则
 - utils/validator.go: 输入验证逻辑
 - config/loader.go: TOML解析正确性
 
@@ -601,39 +465,14 @@ ocsession/
 **任务**:
 - 搜索引擎实现（模糊匹配、多字段搜索、评分）
 - 搜索组件集成（输入框、实时过滤、结果排序）
-- 过滤增强（按标签、项目、日期过滤）
+- 过滤增强（按项目、日期过滤）
 
 **验收标准**:
 - 搜索响应速度<100ms
 - 模糊匹配准确度高
 - 支持中文搜索
 
-### 9.4 Phase 4: 标签与别名管理（Week 6）
-
-**任务**:
-- 标签服务实现（CRUD、统计）
-- 别名服务实现（映射管理、快速跳转）
-- 标签管理界面（添加删除、批量操作）
-- 别名管理界面（设置、验证）
-
-**验收标准**:
-- 标签/别名正确保存
-- 配置文件更新正确
-- 界面交互流畅
-
-### 9.5 Phase 5: 智能建议（Week 7）
-
-**任务**:
-- 建议生成器（标签建议、别名建议、冲突检测）
-- 建议界面集成（提示显示、快速接受）
-- 批量建议处理（首次扫描、批量确认）
-
-**验收标准**:
-- 建议准确率>80%
-- 用户可快速确认/拒绝
-- 建议不重复冲突
-
-### 9.6 Phase 6: 测试与优化（Week 8）
+### 9.4 Phase 4: 测试与优化（Week 6）
 
 **任务**:
 - 单元测试补充（核心服务覆盖、边界测试）
@@ -646,7 +485,7 @@ ocsession/
 - 启动时间<500ms
 - 内存占用<50MB
 
-### 9.7 Phase 7: 文档与发布（Week 9）
+### 9.5 Phase 5: 文档与发布（Week 7）
 
 **任务**:
 - 用户文档（README、配置文档、快捷键）
@@ -670,12 +509,10 @@ ocsession/
 - 继续会话功能
 - 基础预览显示
 
-**v0.2.0 (Beta) - Phase 4后**:
+**v0.2.0 (Beta) - Phase 3后**:
 - 完整搜索功能
-- 标签与别名管理
-- 智能建议（基础）
 
-**v1.0.0 (正式版) - Phase 7后**:
+**v1.0.0 (正式版) - Phase 5后**:
 - 全功能实现
 - 测试覆盖完整
 - 文档完善
@@ -739,11 +576,10 @@ chmod +x /usr/local/bin/ocsession
 
 ## 12. 总结
 
-本项目设计了一个功能完整的OpenCode会话管理工具，通过TUI界面、标签系统、别名机制和智能建议，显著提升会话管理效率。采用Go语言和成熟的开源库，确保性能和可维护性。分阶段实施，确保每个阶段都有明确的交付成果和验收标准。
+本项目设计了一个功能完整的OpenCode会话管理工具，通过TUI界面和模糊搜索，显著提升会话管理效率。采用Go语言和成熟的开源库，确保性能和可维护性。分阶段实施，确保每个阶段都有明确的交付成果和验收标准。
 
 核心优势：
-- **效率提升**: 模糊搜索、标签分类、别名跳转，快速定位会话
-- **智能辅助**: 自动建议标签和别名，减少手动操作
+- **效率提升**: 模糊搜索，快速定位会话
 - **无缝集成**: 直接调用OpenCode继续会话，流程顺畅
 - **独立维护**: 独立配置文件，不侵入OpenCode数据结构
 - **跨平台**: macOS和Linux支持，主流终端兼容
@@ -751,7 +587,6 @@ chmod +x /usr/local/bin/ocsession
 适用场景：
 - 多项目开发者（快速切换不同项目会话）
 - 长期项目维护（保留历史会话上下文）
-- 团队协作（通过标签分类组织会话）
 - 学习探索（保存重要查询和探索会话）
 
 ---
