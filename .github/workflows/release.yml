@@ -83,6 +83,13 @@ jobs:
                              -X github.com/zhaiyz/ocsession/internal/version.BuildDate=${{ steps.version.outputs.date }}" \
                    -o ocsession cmd/ocsession/main.go
       
+      - name: Codesign binary (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          codesign --remove-signature ocsession || true
+          codesign --force --sign - ocsession
+          codesign -dv ocsession
+      
       - name: Package binary
         run: |
           tar -czvf ocsession-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ocsession
@@ -199,6 +206,13 @@ jobs:
           
           # 根据版本添加特定说明
           case "$VERSION" in
+            v0.1.2)
+              cat >> release-notes.md << EOF
+          - 修复 macOS 代码签名问题
+          - 构建时自动添加 ad-hoc 签名
+          - 安装脚本增强签名处理
+          EOF
+              ;;
             v0.1.1)
               cat >> release-notes.md << EOF
           - 修复 install.sh SHA256 校验失败问题

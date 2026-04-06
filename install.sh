@@ -205,6 +205,13 @@ main() {
     mv "$tmp_dir/$BINARY_NAME" "$binary_path"
     chmod +x "$binary_path"
     
+    # macOS 代码签名处理
+    if [[ "$os" == "macos" ]]; then
+        info "处理代码签名..."
+        codesign --remove-signature "$binary_path" 2>/dev/null || true
+        codesign --force --sign - "$binary_path" 2>/dev/null || true
+    fi
+    
     if ! [ -x "$binary_path" ]; then
         error "安装失败"
         exit 1
