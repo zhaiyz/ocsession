@@ -119,7 +119,7 @@ func CheckUpdate() (currentVersion, latestVersion, releaseURL string, err error)
 		return currentVersion, "", "", err
 	}
 
-	latestVersion = strings.TrimPrefix(release.TagName, "v")
+	latestVersion = release.TagName
 	releaseURL = release.HTMLURL
 
 	return currentVersion, latestVersion, releaseURL, nil
@@ -392,10 +392,28 @@ func SelfUpdate() error {
 
 	os.Chmod(binaryPath, 0755)
 
+	// macOS: 处理代码签名和 quarantine 属性
+	if runtime.GOOS == "darwin" {
+		fmt.Println("处理代码签名...")
+		// 移除 quarantine 属性
+		exec.Command("xattr", "-d", "com.apple.quarantine", binaryPath).Run()
+		// 移除可能存在的无效签名
+		exec.Command("codesign", "--remove-signature", binaryPath).Run()
+		// 添加 ad-hoc 签名
+		if err := exec.Command("codesign", "--force", "--sign", "-", binaryPath).Run(); err != nil {
+			fmt.Printf("警告: 代码签名失败: %v\n", err)
+		}
+	}
+
 	fmt.Println("验证新版本...")
 	cmd = exec.Command(binaryPath, "-v")
 	output, err := cmd.Output()
 	if err != nil {
+		// 添加详细错误信息
+		fmt.Printf("命令执行失败: %v\n", err)
+		if len(output) > 0 {
+			fmt.Printf("输出: %s\n", string(output))
+		}
 		fmt.Println("验证失败，尝试恢复备份...")
 		RestoreBackup()
 		return fmt.Errorf("验证失败: %w", err)
