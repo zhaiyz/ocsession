@@ -103,3 +103,22 @@ func TestSearchQueryDeleteEmoji(t *testing.T) {
 		t.Errorf("After deleting emoji, expected '%s', got '%s'", expected, m.searchQuery)
 	}
 }
+
+func TestWindowSizeMsgHandling(t *testing.T) {
+	m := Model{
+		width:  120,
+		height: 25,
+	}
+
+	wsMsg := tea.WindowSizeMsg{Width: 80, Height: 20}
+	updatedModel, _ := m.Update(wsMsg)
+	m = updatedModel.(Model)
+
+	if m.width != 80 {
+		t.Errorf("Expected width 80, got %d", m.width)
+	}
+
+	if m.height != 20 {
+		t.Errorf("Expected height 20, got %d", m.height)
+	}
+}
