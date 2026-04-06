@@ -239,15 +239,41 @@ func (m Model) View() string {
 		}
 	}
 
-	// 固定布局 - 确保边框完整
+	// 动态布局 - 根据终端尺寸调整
+	minWidth := 120
+	minHeight := 15
+
+	// 如果终端太小，显示警告
+	if m.width < minWidth || m.height < minHeight {
+		return lipgloss.NewStyle().
+			Foreground(lipgloss.Color("196")).
+			Render(fmt.Sprintf("终端太小: 需要 %dx%d, 当前 %dx%d", minWidth, minHeight, m.width, m.height))
+	}
+
+	// 计算面板尺寸
+	leftWidth := min(85, m.width*55/100)
+	if leftWidth < 40 {
+		leftWidth = 40
+	}
+
+	rightWidth := min(58, m.width*40/100)
+	if rightWidth < 35 {
+		rightWidth = 35
+	}
+
+	panelHeight := m.height - 3
+	if panelHeight < 10 {
+		panelHeight = 10
+	}
+
 	leftPanel := lipgloss.NewStyle().
-		Width(85).
-		Height(22).
+		Width(leftWidth).
+		Height(panelHeight).
 		Render(list)
 
 	rightPanel := styles.PreviewStyle.
-		Width(58).
-		Height(22).
+		Width(rightWidth).
+		Height(panelHeight).
 		Render(preview)
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
