@@ -30,21 +30,21 @@
 
 macOS / Linux:
 
-\`\`\`bash
+```bash
 curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
-\`\`\`
+```
 
 自定义安装路径:
 
-\`\`\`bash
+```bash
 INSTALL_DIR=~/.local/bin curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
-\`\`\`
+```
 
 安装特定版本:
 
-\`\`\`bash
+```bash
 VERSION=v1.0.0 curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
-\`\`\`
+```
 
 ### 方式2: 手动下载
 
@@ -57,7 +57,7 @@ VERSION=v1.0.0 curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main
 | Linux | x86_64 | ocsession-linux-amd64.tar.gz |
 | Linux | arm64 | ocsession-linux-arm64.tar.gz |
 
-\`\`\`bash
+```bash
 # 解压
 tar -xzf ocsession-*.tar.gz
 
@@ -72,21 +72,21 @@ source ~/.zshrc
 
 # 验证安装
 ocsession -v
-\`\`\`
+```
 
 ### 方式3: 从源码编译
 
-\`\`\`bash
+```bash
 git clone https://github.com/zhaiyz/ocsession
 cd ocsession
 make install
-\`\`\`
+```
 
 **依赖**: Go 1.21+, GCC (用于 SQLite CGO)
 
 ## 使用
 
-\`\`\`bash
+```bash
 # 启动会话管理
 ocsession
 
@@ -103,15 +103,15 @@ ocsession help
 # 检查并更新
 ocsession update         # 会提示确认
 ocsession update -y      # 自动确认更新
-\`\`\`
+```
 
 ## 更新
 
 ### 自动更新（推荐）
 
-\`\`\`bash
+```bash
 ocsession update
-\`\`\`
+```
 
 功能：
 - 自动检查 GitHub Releases 最新版本
@@ -122,9 +122,9 @@ ocsession update
 
 ### 手动更新
 
-\`\`\`bash
+```bash
 curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
-\`\`\`
+```
 
 或从 [Releases](https://github.com/zhaiyz/ocsession/releases) 手动下载。
 
