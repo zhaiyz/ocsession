@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
 
+	"github.com/zhaiyz/ocsession/internal/agent"
 	"github.com/zhaiyz/ocsession/internal/service"
 	"github.com/zhaiyz/ocsession/internal/store"
 	"github.com/zhaiyz/ocsession/internal/tui/styles"
@@ -24,15 +25,14 @@ type Model struct {
 	searchMode     bool
 	sessionService *service.SessionService
 	quitting       bool
+	agentConfig    *agent.AgentConfig
 
-	// 用于启动 OpenCode 的会话信息
 	SessionToStart *store.Session
 
-	// 当前选中会话的详细信息
 	currentDetail *store.SessionDetail
 }
 
-func NewModel(svc *service.SessionService) Model {
+func NewModel(svc *service.SessionService, agentCfg *agent.AgentConfig) Model {
 	sessions := svc.GetAllSessions()
 	return Model{
 		sessions:       sessions,
@@ -40,6 +40,7 @@ func NewModel(svc *service.SessionService) Model {
 		sessionService: svc,
 		selectedIndex:  0,
 		searchMode:     false,
+		agentConfig:    agentCfg,
 	}
 }
 
@@ -165,7 +166,7 @@ func (m Model) View() string {
 		return ""
 	}
 
-	header := styles.TitleStyle.Render(" OpenCode Session Manager ") +
+	header := styles.TitleStyle.Render(" "+m.agentConfig.GetDisplayName()+" Session Manager ") +
 		styles.HelpStyle.Render("  [q:退出] [j/k:导航] [/:搜索] [r:刷新] [Enter:继续]")
 
 	// 会话列表 - 固定宽度
@@ -485,12 +486,12 @@ func truncate(s string, maxLen int) string {
 }
 
 // RunOpenCode 启动 OpenCode 会话
-func RunOpenCode(session *store.Session) error {
+func RunAgent(session *store.Session, agentCfg *agent.AgentConfig) error {
 	if session == nil {
 		return fmt.Errorf("session is nil")
 	}
 
-	cmd := exec.Command("opencode", "-s", session.ID)
+	cmd := exec.Command(agentCfg.GetCommand(), "-s", session.ID)
 	cmd.Dir = session.Directory
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

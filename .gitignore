@@ -4,3 +4,4 @@ bin/
 *.db-wal
 config.toml
 .DS_Store
+ocsession
