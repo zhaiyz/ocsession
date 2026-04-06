@@ -206,6 +206,20 @@ jobs:
           
           # 根据版本添加特定说明
           case "$VERSION" in
+            v0.1.6)
+              cat >> release-notes.md << EOF
+          - 修复版本比较问题（保留 'v' 前缀）
+          - 修复 macOS 更新后验证失败问题
+          - 更新时自动处理代码签名和 quarantine 属性
+          - 改进错误提示信息
+          EOF
+              ;;
+            v0.1.5)
+              cat >> release-notes.md << EOF
+          - 修复 darwin 到 macos 的映射问题
+          - 更新命令现在可以正确找到下载链接
+          EOF
+              ;;
             v0.1.2)
               cat >> release-notes.md << EOF
           - 修复 macOS 代码签名问题
