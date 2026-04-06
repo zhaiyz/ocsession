@@ -392,11 +392,18 @@ func SelfUpdate() error {
 
 	os.Chmod(binaryPath, 0755)
 
-	// macOS: 处理代码签名和 quarantine 属性
+	// macOS: 立即清除 quarantine 属性（在签名和验证之前）
+	if runtime.GOOS == "darwin" {
+		fmt.Println("清除 quarantine 属性...")
+		// 使用 -cr 清除所有扩展属性（更彻底）
+		if err := exec.Command("xattr", "-cr", binaryPath).Run(); err != nil {
+			fmt.Printf("警告: 清除 quarantine 属性失败: %v\n", err)
+		}
+	}
+
+	// macOS: 处理代码签名
 	if runtime.GOOS == "darwin" {
 		fmt.Println("处理代码签名...")
-		// 移除 quarantine 属性
-		exec.Command("xattr", "-d", "com.apple.quarantine", binaryPath).Run()
 		// 移除可能存在的无效签名
 		exec.Command("codesign", "--remove-signature", binaryPath).Run()
 		// 添加 ad-hoc 签名
