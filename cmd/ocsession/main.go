@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,9 +15,49 @@ import (
 	"github.com/zhaiyz/ocsession/internal/service"
 	"github.com/zhaiyz/ocsession/internal/store"
 	"github.com/zhaiyz/ocsession/internal/tui"
+	"github.com/zhaiyz/ocsession/internal/version"
+)
+
+var (
+	showVersion = flag.Bool("v", false, "显示版本信息")
+	showHelp    = flag.Bool("h", false, "显示帮助信息")
+	autoConfirm = flag.Bool("y", false, "自动确认更新（用于 update 命令）")
 )
 
 func main() {
+	flag.BoolVar(showVersion, "version", false, "显示版本信息")
+	flag.BoolVar(showHelp, "help", false, "显示帮助信息")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version.GetFullVersion())
+		os.Exit(0)
+	}
+
+	if *showHelp {
+		printHelp()
+		os.Exit(0)
+	}
+
+	args := flag.Args()
+	if len(args) > 0 {
+		switch args[0] {
+		case "update":
+			handleUpdate()
+			os.Exit(0)
+		case "version":
+			fmt.Println(version.GetFullVersion())
+			os.Exit(0)
+		case "help":
+			printHelp()
+			os.Exit(0)
+		default:
+			fmt.Fprintf(os.Stderr, "未知命令: %s\n", args[0])
+			printHelp()
+			os.Exit(1)
+		}
+	}
+
 	agentCfgPath := getAgentConfigPath()
 
 	agentCfg, err := loadOrDetectAgentConfig(agentCfgPath)
@@ -143,4 +184,99 @@ func detectOrPromptAgentConfig(path string) (*agent.AgentConfig, error) {
 		fmt.Printf("配置已保存，使用 %s\n", agentName)
 		return cfg, nil
 	}
+}
+
+func printHelp() {
+	fmt.Println(`ocsession - OpenCode Session Manager
+
+用法:
+  ocsession              启动会话管理界面
+  ocsession update       检查并更新到最新版本
+  ocsession update -y    自动确认更新（无需手动确认）
+  ocsession version      显示版本信息
+  ocsession -v           显示版本信息
+  ocsession --version    显示版本信息
+  ocsession -h           显示帮助信息
+  ocsession --help       显示帮助信息
+
+快捷键（在 TUI 中）:
+  ↑/k     向上移动
+  ↓/j     向下移动
+  /       搜索模式
+  Enter   继续会话
+  r       刷新列表
+  q       退出
+
+更多信息: https://github.com/zhaiyz/ocsession`)
+}
+
+func handleUpdate() {
+	fmt.Println("检查更新...")
+
+	current, latest, releaseURL, err := version.CheckUpdate()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "检查更新失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("当前版本: %s\n", current)
+	fmt.Printf("最新版本: %s\n", latest)
+
+	if current == "dev" {
+		fmt.Println("\n您正在运行开发版本，无法自动更新。")
+		fmt.Println("请使用以下命令重新安装:")
+		fmt.Println("  make install")
+		fmt.Println("\n或:")
+		fmt.Println("  curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash")
+		os.Exit(0)
+	}
+
+	if current == latest {
+		fmt.Println("\n✓ 已是最新版本!")
+		os.Exit(0)
+	}
+
+	fmt.Println("\n发现新版本!")
+	fmt.Printf("发布页面: %s\n", releaseURL)
+
+	if !version.CanUpdate() {
+		fmt.Println("\n✗ 没有更新权限")
+		fmt.Println("\n当前二进制安装在无写权限的目录。")
+		fmt.Println("请使用以下命令手动更新:")
+		fmt.Println("  curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash")
+		os.Exit(1)
+	}
+
+	if !*autoConfirm {
+		fmt.Print("\n是否更新？[y/N]: ")
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+
+		if strings.TrimSpace(strings.ToLower(input)) != "y" {
+			fmt.Println("取消更新")
+			os.Exit(0)
+		}
+	}
+
+	fmt.Println("\n开始更新...")
+
+	if err := version.SelfUpdate(); err != nil {
+		fmt.Fprintf(os.Stderr, "\n✗ 更新失败: %v\n", err)
+		fmt.Println("\n正在尝试恢复备份...")
+
+		if err := version.RestoreBackup(); err != nil {
+			fmt.Fprintf(os.Stderr, "✗ 恢复备份失败: %v\n", err)
+			fmt.Println("\n请手动重新安装:")
+			fmt.Println("  curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash")
+		} else {
+			fmt.Println("✓ 已恢复备份版本")
+			fmt.Println("\n请稍后重试或手动下载更新")
+		}
+
+		os.Exit(1)
+	}
+
+	fmt.Println("\n✓ 更新成功!")
+	fmt.Printf("新版本: %s\n", latest)
+	fmt.Println("\n下次运行 'ocsession' 时将使用新版本")
 }

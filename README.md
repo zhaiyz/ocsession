@@ -26,27 +26,117 @@
 
 ## 安装
 
-### 方式1: 从源码编译
+### 方式1: 一键安装（推荐）
 
-```bash
+macOS / Linux:
+
+\`\`\`bash
+curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
+\`\`\`
+
+自定义安装路径:
+
+\`\`\`bash
+INSTALL_DIR=~/.local/bin curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
+\`\`\`
+
+安装特定版本:
+
+\`\`\`bash
+VERSION=v1.0.0 curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
+\`\`\`
+
+### 方式2: 手动下载
+
+从 [Releases](https://github.com/zhaiyz/ocsession/releases) 下载对应平台的二进制：
+
+| 平台 | 架构 | 下载 |
+|------|------|------|
+| macOS | Apple Silicon (M1/M2/M3) | ocsession-macos-arm64.tar.gz |
+| macOS | Intel | ocsession-macos-amd64.tar.gz |
+| Linux | x86_64 | ocsession-linux-amd64.tar.gz |
+| Linux | arm64 | ocsession-linux-arm64.tar.gz |
+
+\`\`\`bash
+# 解压
+tar -xzf ocsession-*.tar.gz
+
+# 安装到用户目录（推荐）
+mkdir -p ~/.local/bin
+mv ocsession ~/.local/bin/
+chmod +x ~/.local/bin/ocsession
+
+# 添加到 PATH（如果 ~/.local/bin 不在 PATH 中）
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc  # 或 ~/.bashrc
+source ~/.zshrc
+
+# 验证安装
+ocsession -v
+\`\`\`
+
+### 方式3: 从源码编译
+
+\`\`\`bash
 git clone https://github.com/zhaiyz/ocsession
 cd ocsession
 make install
-```
+\`\`\`
 
-### 方式2: 直接编译
-
-```bash
-cd ocsession
-make build
-sudo mv bin/ocsession /usr/local/bin/
-```
+**依赖**: Go 1.21+, GCC (用于 SQLite CGO)
 
 ## 使用
 
-```bash
+\`\`\`bash
+# 启动会话管理
 ocsession
-```
+
+# 查看版本
+ocsession -v
+ocsession --version
+ocsession version
+
+# 查看帮助
+ocsession -h
+ocsession --help
+ocsession help
+
+# 检查并更新
+ocsession update         # 会提示确认
+ocsession update -y      # 自动确认更新
+\`\`\`
+
+## 更新
+
+### 自动更新（推荐）
+
+\`\`\`bash
+ocsession update
+\`\`\`
+
+功能：
+- 自动检查 GitHub Releases 最新版本
+- 下载并验证 SHA256
+- 备份当前版本
+- 自动替换二进制文件
+- 更新失败自动恢复备份
+
+### 手动更新
+
+\`\`\`bash
+curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
+\`\`\`
+
+或从 [Releases](https://github.com/zhaiyz/ocsession/releases) 手动下载。
+
+## 命令行参数
+
+| 命令 | 说明 |
+|------|------|
+| `ocsession` | 启动 TUI 会话管理 |
+| `ocsession -v` | 显示版本信息 |
+| `ocsession -h` | 显示帮助信息 |
+| `ocsession update` | 检查并更新到最新版本 |
+| `ocsession update -y` | 自动确认更新（跳过确认提示） |
 
 ## ⌨️ 键盘快捷键
 

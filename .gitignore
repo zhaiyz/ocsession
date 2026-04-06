@@ -5,3 +5,10 @@ bin/
 config.toml
 .DS_Store
 ocsession
+
+dist/
+*.tar.gz
+*.sha256
+*.zip
+*.backup
+update.lock

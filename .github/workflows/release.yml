@@ -1,0 +1,210 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.1)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos
+            arch: arm64
+            runner: macos-latest
+            goos: darwin
+          - os: macos
+            arch: amd64
+            runner: macos-latest
+            goos: darwin
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            goos: linux
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+            goos: linux
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Install cross-compiler (Linux arm64)
+        if: matrix.os == 'linux' && matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+      
+      - name: Get version info
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          GIT_COMMIT="${{ github.sha }}"
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "commit=${GIT_COMMIT::7}" >> $GITHUB_OUTPUT
+          echo "date=${BUILD_DATE}" >> $GITHUB_OUTPUT
+      
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+          CC: ${{ matrix.os == 'linux' && matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || '' }}
+        run: |
+          go build -ldflags "-X github.com/zhaiyz/ocsession/internal/version.Version=${{ steps.version.outputs.version }} \
+                             -X github.com/zhaiyz/ocsession/internal/version.GitCommit=${{ steps.version.outputs.commit }} \
+                             -X github.com/zhaiyz/ocsession/internal/version.BuildDate=${{ steps.version.outputs.date }}" \
+                   -o ocsession cmd/ocsession/main.go
+      
+      - name: Package binary
+        run: |
+          tar -czvf ocsession-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ocsession
+          shasum -a 256 ocsession-${{ matrix.os }}-${{ matrix.arch }}.tar.gz > ocsession-${{ matrix.os }}-${{ matrix.arch }}.sha256
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocsession-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            ocsession-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+            ocsession-${{ matrix.os }}-${{ matrix.arch }}.sha256
+          retention-days: 1
+  
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.sha256" \) -exec mv {} release-assets/ \;
+          ls -lh release-assets/
+      
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      
+      - name: Generate release notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          cat > release-notes.md << EOF
+          ## 安装
+
+          ### 一键安装 (macOS / Linux)
+
+          \`\`\`bash
+          curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
+          \`\`\`
+
+          ### 手动下载
+
+          | 平台 | 架构 | 下载 |
+          |------|------|------|
+          | macOS | Apple Silicon (M1/M2/M3) | [ocsession-macos-arm64.tar.gz](https://github.com/zhaiyz/ocsession/releases/download/${VERSION}/ocsession-macos-arm64.tar.gz) |
+          | macOS | Intel | [ocsession-macos-amd64.tar.gz](https://github.com/zhaiyz/ocsession/releases/download/${VERSION}/ocsession-macos-amd64.tar.gz) |
+          | Linux | x86_64 | [ocsession-linux-amd64.tar.gz](https://github.com/zhaiyz/ocsession/releases/download/${VERSION}/ocsession-linux-amd64.tar.gz) |
+          | Linux | arm64 | [ocsession-linux-arm64.tar.gz](https://github.com/zhaiyz/ocsession/releases/download/${VERSION}/ocsession-linux-arm64.tar.gz) |
+
+          ### 安装步骤
+
+          \`\`\`bash
+          # 解压
+          tar -xzf ocsession-*.tar.gz
+          
+          # 安装到用户目录（推荐）
+          mkdir -p ~/.local/bin
+          mv ocsession ~/.local/bin/
+          chmod +x ~/.local/bin/ocsession
+          
+          # 添加到 PATH（如果 ~/.local/bin 不在 PATH 中）
+          echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc  # 或 ~/.bashrc
+          source ~/.zshrc
+          \`\`\`
+
+          ## 使用
+
+          \`\`\`bash
+          ocsession          # 启动会话管理
+          ocsession -v       # 查看版本
+          ocsession update   # 检查并更新
+          \`\`\`
+
+          ## 更新
+
+          \`\`\`bash
+          # 自动更新
+          ocsession update
+          
+          # 或重新安装
+          curl -sSL https://raw.githubusercontent.com/zhaiyz/ocsession/main/install.sh | bash
+          \`\`\`
+
+          ## 校验和
+
+          下载后可验证文件完整性：
+
+          \`\`\`bash
+          shasum -a 256 -c ocsession-*.sha256
+          \`\`\`
+
+          ---
+
+          **完整变更记录**: 查看 [commits](https://github.com/zhaiyz/ocsession/commits/${VERSION})
+          EOF
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: OpenCode Session Manager ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
