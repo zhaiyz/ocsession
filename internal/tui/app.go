@@ -29,10 +29,10 @@ type Model struct {
 
 	SessionToStart *store.Session
 
-	currentDetail *store.SessionDetail
-
-	width  int
-	height int
+	currentDetail  *store.SessionDetail
+	width          int
+	height         int
+	viewportOffset int // 视窗偏移，用于滚动会话列表
 }
 
 func NewModel(svc *service.SessionService, agentCfg *agent.AgentConfig) Model {
@@ -93,10 +93,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "up", "k":
 					if m.selectedIndex > 0 {
 						m.selectedIndex--
+						m.ensureVisible()
 					}
 				case "down", "j":
 					if m.selectedIndex < len(m.sessions)-1 {
 						m.selectedIndex++
+						m.ensureVisible()
 					}
 				}
 			}
@@ -110,11 +112,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "up", "k":
 				if m.selectedIndex > 0 {
 					m.selectedIndex--
+					m.ensureVisible()
 				}
 
 			case "down", "j":
 				if m.selectedIndex < len(m.sessions)-1 {
 					m.selectedIndex++
+					m.ensureVisible()
 				}
 
 			case "/":
@@ -146,6 +150,7 @@ func (m *Model) filterSessions() {
 	if m.searchQuery == "" {
 		m.sessions = m.allSessions
 		m.selectedIndex = 0
+		m.viewportOffset = 0
 		return
 	}
 
@@ -169,6 +174,42 @@ func (m *Model) filterSessions() {
 	if m.selectedIndex < 0 {
 		m.selectedIndex = 0
 	}
+	m.viewportOffset = 0
+}
+
+// ensureVisible 确保选中项在视窗内可见
+func (m *Model) ensureVisible() {
+	if len(m.sessions) == 0 {
+		return
+	}
+
+	// 计算可见会话数量（面板高度减去留白）
+	panelHeight := m.height - 3
+	if panelHeight < 10 {
+		panelHeight = 10
+	}
+
+	// 向上滚动：如果选中项在视窗上方
+	if m.selectedIndex < m.viewportOffset {
+		m.viewportOffset = m.selectedIndex
+	}
+
+	// 向下滚动：如果选中项在视窗下方
+	if m.selectedIndex >= m.viewportOffset+panelHeight {
+		m.viewportOffset = m.selectedIndex - panelHeight + 1
+	}
+
+	// 边界检查
+	maxOffset := len(m.sessions) - panelHeight
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if m.viewportOffset > maxOffset {
+		m.viewportOffset = maxOffset
+	}
+	if m.viewportOffset < 0 {
+		m.viewportOffset = 0
+	}
 }
 
 func (m Model) View() string {
@@ -179,9 +220,22 @@ func (m Model) View() string {
 	header := styles.TitleStyle.Render(" "+m.agentConfig.GetDisplayName()+" Session Manager ") +
 		styles.HelpStyle.Render("  [q:退出] [j/k:导航] [/:搜索] [r:刷新] [Enter:继续]")
 
-	// 会话列表 - 固定宽度
-	listLines := make([]string, 0, len(m.sessions))
-	for i, sess := range m.sessions {
+	// 会话列表 - 只显示视窗内的会话
+	panelHeight := m.height - 3
+	if panelHeight < 10 {
+		panelHeight = 10
+	}
+
+	// 计算视窗范围
+	start := m.viewportOffset
+	end := start + panelHeight
+	if end > len(m.sessions) {
+		end = len(m.sessions)
+	}
+
+	listLines := make([]string, 0, panelHeight)
+	for i := start; i < end; i++ {
+		sess := m.sessions[i]
 		cursor := "  "
 		if i == m.selectedIndex {
 			cursor = "→ "
@@ -261,11 +315,7 @@ func (m Model) View() string {
 		rightWidth = 35
 	}
 
-	panelHeight := m.height - 3
-	if panelHeight < 10 {
-		panelHeight = 10
-	}
-
+	// 使用前面计算好的 panelHeight
 	leftPanel := lipgloss.NewStyle().
 		Width(leftWidth).
 		Height(panelHeight).
