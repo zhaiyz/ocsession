@@ -193,6 +193,35 @@ jobs:
 
           ---
 
+          **更新内容**:
+
+          EOF
+          
+          # 根据版本添加特定说明
+          case "$VERSION" in
+            v0.1.1)
+              cat >> release-notes.md << EOF
+          - 修复 install.sh SHA256 校验失败问题
+          - 改进二进制文件验证逻辑
+          EOF
+              ;;
+            v0.1.0)
+              cat >> release-notes.md << EOF
+          - 首次正式发布
+          - 支持 GitHub Releases 自动构建和发布
+          - 支持一键安装脚本 (install.sh)
+          - 支持自动更新功能 (ocsession update)
+          EOF
+              ;;
+            *)
+              cat >> release-notes.md << EOF
+          查看 [commits](https://github.com/zhaiyz/ocsession/commits/${VERSION}) 了解详细变更
+          EOF
+              ;;
+          esac
+          
+          cat >> release-notes.md << EOF
+
           **完整变更记录**: 查看 [commits](https://github.com/zhaiyz/ocsession/commits/${VERSION})
           EOF
       

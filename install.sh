@@ -174,8 +174,12 @@ main() {
     if download_file "$sha_url" "$sha_file"; then
         info "验证 SHA256..."
         if command -v shasum &> /dev/null; then
-            if ! shasum -a 256 -c "$sha_file" &> /dev/null; then
+            expected_sha=$(awk '{print $1}' "$sha_file")
+            actual_sha=$(shasum -a 256 "$tar_file" | awk '{print $1}')
+            if [ "$expected_sha" != "$actual_sha" ]; then
                 error "校验失败，文件可能已损坏"
+                echo "  期望: $expected_sha"
+                echo "  实际: $actual_sha"
                 exit 1
             fi
             success "校验通过"
