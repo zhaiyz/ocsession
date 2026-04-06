@@ -50,7 +50,11 @@ func GetUserAgent() string {
 }
 
 func GetPlatform() string {
-	return fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
+	os := runtime.GOOS
+	if os == "darwin" {
+		os = "macos"
+	}
+	return fmt.Sprintf("%s-%s", os, runtime.GOARCH)
 }
 
 func GetCurrentBinaryPath() (string, error) {
