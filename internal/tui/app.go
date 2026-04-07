@@ -517,12 +517,14 @@ func formatTime(timestamp int64) string {
 		return "未知时间"
 	}
 
-	// 毫秒时间戳转换为秒
 	t := time.Unix(timestamp/1000, 0)
 	now := time.Now()
-	diff := now.Sub(t)
 
-	// 中文星期映射
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tDayStart := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+
+	daysDiff := int(todayStart.Sub(tDayStart).Hours() / 24)
+
 	weekdays := map[string]string{
 		"Monday":    "周一",
 		"Tuesday":   "周二",
@@ -533,16 +535,15 @@ func formatTime(timestamp int64) string {
 		"Sunday":    "周日",
 	}
 
-	if diff.Hours() < 24 {
-		// 今天 - 显示"今天 + 时间"
+	if daysDiff == 0 {
 		return "今天 " + t.Format("15:04")
-	} else if diff.Hours() < 24*7 {
-		// 本周 - 显示中文星期 + 时间
+	} else if daysDiff == 1 {
+		return "昨天 " + t.Format("15:04")
+	} else if daysDiff < 7 {
 		weekday := t.Format("Monday")
 		cnWeekday := weekdays[weekday]
 		return cnWeekday + " " + t.Format("15:04")
 	} else {
-		// 更早 - 显示日期
 		return t.Format("2006-01-02")
 	}
 }
